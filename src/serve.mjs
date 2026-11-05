@@ -95,6 +95,8 @@ export async function serveCommand({ command, url, env = {}, timeoutMs = 60_000 
 /** How a build is reached, from the config's `serve`. */
 export async function serveBuild(config, build) {
   const s = config.serve ?? 'static';
+  // A site already up (url:<url>): nothing is built or served here, so there is no folder to serve.
+  if (build.url) return { base: build.url.replace(/\/$/, ''), dist: null, close: async () => {}, remote: true };
   if (s === 'static') return serveStatic(build.out);
   if (s.static) return serveStatic(build.out, s.host);
   if (s.url && !s.command) return { base: s.url.replace(/\/$/, ''), dist: null, close: async () => {}, remote: true };
