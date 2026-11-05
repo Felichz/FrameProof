@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="414" viewBox="0 0 1280 414" role="img" aria-labelledby="t">
+<title id="t">What frameproof found in the sample app: four planted causes by file and line, and the red herring not blamed</title>
+<style>
+svg { --card:#f6f8fa; --card2:#ffffff; --ink:#1f2328; --muted:#59636e; --faint:#818b98; --line:#d1d9e0;
+  --good:#1a7f37; --goodsoft:#dafbe1; --bad:#cf222e; --badsoft:#ffebe9; --accent:#8250df; --accentsoft:#fbefff;
+  --warn:#9a6700; --warnsoft:#fff8c5; --blue:#0969da; --bluesoft:#ddf4ff; }
+@media (prefers-color-scheme: dark) { svg { --card:#151b23; --card2:#0d1117; --ink:#f0f6fc; --muted:#9198a1; --faint:#656c76;
+  --line:#3d444d; --good:#3fb950; --goodsoft:#12261e; --bad:#f85149; --badsoft:#2d1418; --accent:#ab7df8; --accentsoft:#231631;
+  --warn:#d29922; --warnsoft:#272115; --blue:#4493f8; --bluesoft:#121d2f; } }
+.card { fill: var(--card); stroke: var(--line); }
+.card2 { fill: var(--card2); stroke: var(--line); }
+.ink { fill: var(--ink); } .muted { fill: var(--muted); } .faint { fill: var(--faint); }
+.good { fill: var(--good); } .bad { fill: var(--bad); } .accent { fill: var(--accent); } .warn { fill: var(--warn); } .blue { fill: var(--blue); }
+.goodsoft { fill: var(--goodsoft); } .ontime { fill: var(--good); opacity: 0.22; } .badsoft { fill: var(--badsoft); } .accentsoft { fill: var(--accentsoft); } .warnsoft { fill: var(--warnsoft); } .bluesoft { fill: var(--bluesoft); }
+.line { stroke: var(--line); } .sline { stroke: var(--muted); } .sgood { stroke: var(--good); } .sbad { stroke: var(--bad); } .saccent { stroke: var(--accent); } .swarn { stroke: var(--warn); }
+.sans { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif; } .mono { font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace; }
+</style>
+<rect x="0.5" y="0.5" width="1279" height="413" rx="18" class="card"/>
+<text x="48" y="44" xml:space="preserve" class="muted sans" font-size="12" font-weight="600" text-anchor="start" letter-spacing="1.2">WHAT IT FOUND IN THE SAMPLE APP, WITH NO HINTS</text>
+<text x="48" y="74" xml:space="preserve" class="muted sans" font-size="15" font-weight="400" text-anchor="start">examples/janky-shop has four planted causes and a red herring. Each was named by its file and line.</text><rect x="48" y="96" width="1184" height="50" rx="12" class="card2"/>
+<circle cx="76" cy="121" r="11" class="goodsoft"/><path d="M70 121 l4 4 l8 -9" class="sgood" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="100" y="109" width="65" height="24" rx="12" class="bluesoft"/><text x="132.5" y="125.32" xml:space="preserve" class="blue mono" font-size="12" font-weight="600" text-anchor="middle">scroll</text>
+<text x="230" y="127" xml:space="preserve" class="ink sans" font-size="16" font-weight="600" text-anchor="start">layout forced in the scroll handler</text>
+<text x="760" y="127" xml:space="preserve" class="bad mono" font-size="15" font-weight="400" text-anchor="start">sticky-header.js:6</text>
+<text x="1208" y="127" xml:space="preserve" class="faint mono" font-size="13" font-weight="400" text-anchor="end">freezes</text><rect x="48" y="158" width="1184" height="50" rx="12" class="card2"/>
+<circle cx="76" cy="183" r="11" class="goodsoft"/><path d="M70 183 l4 4 l8 -9" class="sgood" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="100" y="171" width="87" height="24" rx="12" class="bluesoft"/><text x="143.5" y="187.32" xml:space="preserve" class="blue mono" font-size="12" font-weight="600" text-anchor="middle">open-cart</text>
+<text x="230" y="189" xml:space="preserve" class="ink sans" font-size="16" font-weight="600" text-anchor="start">style forced on 2908 elements</text>
+<text x="760" y="189" xml:space="preserve" class="bad mono" font-size="15" font-weight="400" text-anchor="start">cart.js:28</text>
+<text x="1208" y="189" xml:space="preserve" class="faint mono" font-size="13" font-weight="400" text-anchor="end">freezes</text><rect x="48" y="220" width="1184" height="50" rx="12" class="card2"/>
+<circle cx="76" cy="245" r="11" class="goodsoft"/><path d="M70 245 l4 4 l8 -9" class="sgood" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="100" y="233" width="50" height="24" rx="12" class="bluesoft"/><text x="125" y="249.32" xml:space="preserve" class="blue mono" font-size="12" font-weight="600" text-anchor="middle">load</text>
+<text x="230" y="251" xml:space="preserve" class="ink sans" font-size="16" font-weight="600" text-anchor="start">1.7 s waiting on a shader link</text>
+<text x="760" y="251" xml:space="preserve" class="bad mono" font-size="15" font-weight="400" text-anchor="start">GetProgramiv, hero-gl.js</text>
+<text x="1208" y="251" xml:space="preserve" class="faint mono" font-size="13" font-weight="400" text-anchor="end">journey</text><rect x="48" y="282" width="1184" height="50" rx="12" class="card2"/>
+<circle cx="76" cy="307" r="11" class="goodsoft"/><path d="M70 307 l4 4 l8 -9" class="sgood" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="100" y="295" width="50" height="24" rx="12" class="bluesoft"/><text x="125" y="311.32" xml:space="preserve" class="blue mono" font-size="12" font-weight="600" text-anchor="middle">idle</text>
+<text x="230" y="313" xml:space="preserve" class="ink sans" font-size="16" font-weight="600" text-anchor="start">180 frames asked for at rest</text>
+<text x="760" y="313" xml:space="preserve" class="bad mono" font-size="15" font-weight="400" text-anchor="start">ticker.js:7</text>
+<text x="1208" y="313" xml:space="preserve" class="faint mono" font-size="13" font-weight="400" text-anchor="end">check + query</text><rect x="48" y="344" width="1184" height="50" rx="12" class="card2" stroke-dasharray="5 4"/>
+<circle cx="76" cy="369" r="11" class="goodsoft"/><path d="M70 369 l4 4 l8 -9" class="sgood" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="100" y="357" width="102" height="24" rx="12" class="warnsoft"/><text x="151" y="373.32" xml:space="preserve" class="warn mono" font-size="12" font-weight="600" text-anchor="middle">red herring</text>
+<text x="230" y="375" xml:space="preserve" class="muted sans" font-size="15" font-weight="400" text-anchor="start">a sorted copy of the catalog and a JSON snapshot: they look costly, measure as nothing, and were not blamed</text>
+</svg>

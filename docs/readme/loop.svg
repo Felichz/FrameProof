@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="330" viewBox="0 0 1280 330" role="img" aria-labelledby="t">
+<title id="t">The loop: next, goals, freezes, price, change, compare, report, with a journal</title>
+<style>
+svg { --card:#f6f8fa; --card2:#ffffff; --ink:#1f2328; --muted:#59636e; --faint:#818b98; --line:#d1d9e0;
+  --good:#1a7f37; --goodsoft:#dafbe1; --bad:#cf222e; --badsoft:#ffebe9; --accent:#8250df; --accentsoft:#fbefff;
+  --warn:#9a6700; --warnsoft:#fff8c5; --blue:#0969da; --bluesoft:#ddf4ff; }
+@media (prefers-color-scheme: dark) { svg { --card:#151b23; --card2:#0d1117; --ink:#f0f6fc; --muted:#9198a1; --faint:#656c76;
+  --line:#3d444d; --good:#3fb950; --goodsoft:#12261e; --bad:#f85149; --badsoft:#2d1418; --accent:#ab7df8; --accentsoft:#231631;
+  --warn:#d29922; --warnsoft:#272115; --blue:#4493f8; --bluesoft:#121d2f; } }
+.card { fill: var(--card); stroke: var(--line); }
+.card2 { fill: var(--card2); stroke: var(--line); }
+.ink { fill: var(--ink); } .muted { fill: var(--muted); } .faint { fill: var(--faint); }
+.good { fill: var(--good); } .bad { fill: var(--bad); } .accent { fill: var(--accent); } .warn { fill: var(--warn); } .blue { fill: var(--blue); }
+.goodsoft { fill: var(--goodsoft); } .ontime { fill: var(--good); opacity: 0.22; } .badsoft { fill: var(--badsoft); } .accentsoft { fill: var(--accentsoft); } .warnsoft { fill: var(--warnsoft); } .bluesoft { fill: var(--bluesoft); }
+.line { stroke: var(--line); } .sline { stroke: var(--muted); } .sgood { stroke: var(--good); } .sbad { stroke: var(--bad); } .saccent { stroke: var(--accent); } .swarn { stroke: var(--warn); }
+.sans { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif; } .mono { font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace; }
+</style>
+<rect x="0.5" y="0.5" width="1279" height="329" rx="18" class="card"/>
+<text x="48" y="44" xml:space="preserve" class="muted sans" font-size="12" font-weight="600" text-anchor="start" letter-spacing="1.2">THE LOOP AN AGENT FOLLOWS</text>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="faint"/></marker></defs><rect x="43" y="70" width="150" height="132" rx="14" class="card2"/>
+<circle cx="69" cy="98" r="13" class="bluesoft"/><text x="69" y="103" xml:space="preserve" class="blue sans" font-size="13" font-weight="700" text-anchor="middle">1</text>
+<text x="61" y="146" xml:space="preserve" class="ink mono" font-size="21" font-weight="700" text-anchor="start">next</text>
+<text x="61" y="172" xml:space="preserve" class="muted sans" font-size="13" font-weight="400" text-anchor="start">the one thing</text>
+<text x="61" y="190" xml:space="preserve" class="muted sans" font-size="13" font-weight="400" text-anchor="start">to do now</text><line x1="196" y1="136" x2="214" y2="136" class="sline" stroke-width="1.6" marker-end="url(#a)"/><rect x="217" y="70" width="150" height="132" rx="14" class="card2"/>
+<circle cx="243" cy="98" r="13" class="warnsoft"/><text x="243" y="103" xml:space="preserve" class="warn sans" font-size="13" font-weight="700" text-anchor="middle">2</text>
+<text x="235" y="146" xml:space="preserve" class="ink mono" font-size="21" font-weight="700" text-anchor="start">GOALS</text>
+<text x="235" y="172" xml:space="preserve" class="muted sans" font-size="13" font-weight="400" text-anchor="start">asks the person</text>
+<text x="235" y="190" xml:space="preserve" class="muted sans" font-size="13" font-weight="400" text-anchor="start">what matters</text><line x1="370" y1="136" x2="388" y2="136" class="sline" stroke-width="1.6" marker-end="url(#a)"/><rect x="391" y="70" width="150" height="132" rx="14" class="card2"/>
+<circle cx="417" cy="98" r="13" class="badsoft"/><text x="417" y="103" xml:space="preserve" class="bad sans" font-size="13" font-weight="700" text-anchor="middle">3</text>
+<text x="409" y="146" xml:space="preserve" class="ink mono" font-size="21" font-weight="700" text-anchor="start">freezes</text>
+<text x="409" y="172" xml:space="preserve" class="muted sans" font-size="13" font-weight="400" text-anchor="start">what froze,</text>
+<text x="409" y="190" xml:space="preserve" class="muted sans" font-size="13" font-weight="400" text-anchor="start">to the line</text><line x1="544" y1="136" x2="562" y2="136" class="sline" stroke-width="1.6" marker-end="url(#a)"/><rect x="565" y="70" width="150" height="132" rx="14" class="card2"/>
+<circle cx="591" cy="98" r="13" class="accentsoft"/><text x="591" y="103" xml:space="preserve" class="accent sans" font-size="13" font-weight="700" text-anchor="middle">4</text>
+<text x="583" y="146" xml:space="preserve" class="ink mono" font-size="21" font-weight="700" text-anchor="start">price</text>
+<text x="583" y="172" xml:space="preserve" class="muted sans" font-size="13" font-weight="400" text-anchor="start">a fix, before</text>
+<text x="583" y="190" xml:space="preserve" class="muted sans" font-size="13" font-weight="400" text-anchor="start">making it</text><line x1="718" y1="136" x2="736" y2="136" class="sline" stroke-width="1.6" marker-end="url(#a)"/><rect x="739" y="70" width="150" height="132" rx="14" class="card2"/>
+<circle cx="765" cy="98" r="13" class="accentsoft"/><text x="765" y="103" xml:space="preserve" class="accent sans" font-size="13" font-weight="700" text-anchor="middle">5</text>
+<text x="757" y="146" xml:space="preserve" class="ink mono" font-size="21" font-weight="700" text-anchor="start">change</text>
+<text x="757" y="172" xml:space="preserve" class="muted sans" font-size="13" font-weight="400" text-anchor="start">one thing,</text>
+<text x="757" y="190" xml:space="preserve" class="muted sans" font-size="13" font-weight="400" text-anchor="start">uncommitted</text><line x1="892" y1="136" x2="910" y2="136" class="sline" stroke-width="1.6" marker-end="url(#a)"/><rect x="913" y="70" width="150" height="132" rx="14" class="card2"/>
+<circle cx="939" cy="98" r="13" class="goodsoft"/><text x="939" y="103" xml:space="preserve" class="good sans" font-size="13" font-weight="700" text-anchor="middle">6</text>
+<text x="931" y="146" xml:space="preserve" class="ink mono" font-size="21" font-weight="700" text-anchor="start">compare</text>
+<text x="931" y="172" xml:space="preserve" class="muted sans" font-size="13" font-weight="400" text-anchor="start">alternated A/B,</text>
+<text x="931" y="190" xml:space="preserve" class="muted sans" font-size="13" font-weight="400" text-anchor="start">a verdict</text><line x1="1066" y1="136" x2="1084" y2="136" class="sline" stroke-width="1.6" marker-end="url(#a)"/><rect x="1087" y="70" width="150" height="132" rx="14" class="card2"/>
+<circle cx="1113" cy="98" r="13" class="bluesoft"/><text x="1113" y="103" xml:space="preserve" class="blue sans" font-size="13" font-weight="700" text-anchor="middle">7</text>
+<text x="1105" y="146" xml:space="preserve" class="ink mono" font-size="21" font-weight="700" text-anchor="start">report</text>
+<text x="1105" y="172" xml:space="preserve" class="muted sans" font-size="13" font-weight="400" text-anchor="start">for a person,</text>
+<text x="1105" y="190" xml:space="preserve" class="muted sans" font-size="13" font-weight="400" text-anchor="start">worded to it</text><path d="M 1162 202 v 16 M 118 218 v -12" class="sline" stroke-width="1.6" fill="none" marker-end="url(#a)"/>
+<path d="M 1162 218 H 118" class="sline" stroke-width="1.6" fill="none" stroke-dasharray="4 4"/>
+<rect x="43" y="238" width="1194" height="44" rx="12" class="warnsoft"/>
+<text x="63" y="266" xml:space="preserve" class="warn mono" font-size="15" font-weight="700" text-anchor="start">perf/JOURNAL.md</text>
+<text x="233" y="266" xml:space="preserve" class="muted sans" font-size="14" font-weight="400" text-anchor="start">every compare and price lands here, with its hypothesis: the next session starts where this one stopped</text>
+</svg>

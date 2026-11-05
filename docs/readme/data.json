@@ -1,0 +1,41 @@
+{
+  "source": "Runs on examples/janky-shop, 2026-11-04, a 2020 Intel MacBook (i5-1038NG7, Iris Plus, 60 Hz), Chrome 156. Late frames per repetition from the compare run 2026-11-04T21-09-24-8b3c; the dossier from the freezes run 2026-11-04T21-20-46-e952; the frame strip from test/fixtures/scroll-forced-layout-chrome156.json.gz.",
+  "compare": {
+    "run": "2026-11-04T21-09-24-8b3c",
+    "throttle": 4,
+    "cells": [
+      {
+        "cell": "scroll/down@4x",
+        "base": [25, 21, 26, 27, 39, 25, 24, 32, 24, 27, 39, 23, 25, 24, 25, 25, 28, 23, 24, 24, 22, 25, 22, 24, 27, 20, 24, 24, 24, 23, 23, 20],
+        "head": [0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1],
+        "effect": -24,
+        "interval": [-25.2, -22.8]
+      },
+      {
+        "cell": "scroll/up@4x",
+        "base": [23, 18, 22, 22, 19, 17, 19, 23, 19, 20, 25, 20, 22, 19, 19, 19, 20, 21, 21, 21, 19, 19, 18, 19, 19, 20, 20, 18, 19, 19, 21, 18],
+        "head": [0, 0, 1, 0, 3, 1, 0, 0, 0, 0, 1, 1, 0, 3, 1, 1, 2, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 2, 1, 2, 3, 0],
+        "effect": -19,
+        "interval": [-20.2, -17.8]
+      }
+    ]
+  },
+  "dossier": {
+    "where": "scroll down",
+    "in": "2/2",
+    "ms": 67,
+    "task": [
+      { "kind": "script", "ms": 22, "label": "script", "where": "sticky-header.js:4" },
+      { "kind": "layout", "ms": 41, "label": "layout, forced", "where": "sticky-header.js:6" },
+      { "kind": "paint", "ms": 10, "label": "paint" },
+      { "kind": "style", "ms": 5, "label": "style, forced" }
+    ],
+    "verdict": "layout forced 80 of 4342 objects in 10 passes at src/sticky-header.js:6, from script at src/sticky-header.js:4"
+  },
+  "found": [
+    { "where": "scroll", "cause": "layout forced in the scroll handler", "at": "sticky-header.js:6", "how": "freezes" },
+    { "where": "open-cart", "cause": "style forced on 2908 elements", "at": "cart.js:28", "how": "freezes" },
+    { "where": "load", "cause": "1.7 s waiting on a shader link", "at": "GetProgramiv, hero-gl.js", "how": "journey" },
+    { "where": "idle", "cause": "180 frames asked for at rest", "at": "ticker.js:7", "how": "check + query" }
+  ]
+}

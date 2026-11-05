@@ -177,6 +177,9 @@ export async function runBlock({ config, build, served, plan, reps, throttle = 1
 
   async function step(page, ctx, st, measure, label) {
     await sleep(st.before ?? 400);
+    // A tab in the background draws nothing: its step would count no frames and no work, which reads as a
+    // perfect page. It is brought to the front, and if it stays hidden the step fails as such.
+    if (!headless && !(await visible(page))) return { ok: false, ms: 0, failure: { kind: 'hidden', reason: 'the page was not visible (a background tab draws no frames), even after bringing it to the front' } };
     await page.tracing.start({ categories: CATEGORIES[depth] });
     // Starting the trace starts V8's sampling profiler, a task of its own on the main thread (25 ms seen):
     // the step acts once it's over, and a mark says where the step really begins.
@@ -208,6 +211,16 @@ export async function runBlock({ config, build, served, plan, reps, throttle = 1
     const reduced = await reduce(events, page, label);
     dbg('reduced');
     return { ok: true, ms, ...reduced };
+  }
+
+  async function visible(page) {
+    for (let i = 0; i < 6; i++) {
+      const state = await page.evaluate(() => document.visibilityState).catch(() => 'unknown');
+      if (state === 'visible') return true;
+      await page.bringToFront().catch(() => {});
+      await sleep(150);
+    }
+    return false;
   }
 
   async function reduce(events, page, label) {

@@ -36,7 +36,12 @@ git('init', '-q');
 git('add', '-A');
 git('-c', 'user.name=frameproof-e2e', '-c', 'user.email=e2e@localhost', 'commit', '-qm', 'janky shop');
 
-const doctor = fp('doctor');
+// Copying the app wakes the OS's file indexer: give the machine up to five minutes to settle.
+let doctor = fp('doctor');
+for (let i = 0; i < 15 && doctor.status === 'not-measurable' && /busy/.test(doctor.summary); i++) {
+  await new Promise((r) => setTimeout(r, 20_000));
+  doctor = fp('doctor', '--quick');
+}
 if (doctor.status !== 'ok') {
   console.log(`not measurable here: ${doctor.summary}`);
   process.exit(2);
