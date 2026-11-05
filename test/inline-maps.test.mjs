@@ -35,3 +35,13 @@ test('inline scripts resolve through their own maps, the map found in the build 
   // Outside every inline script: the page's own position.
   assert.equal(p.place('http://h/', 0, 0).where, '/:1');
 });
+
+test("an Astro component's script block is named, since its lines count from the block", async () => {
+  const dist = mkdtempSync(join(tmpdir(), 'fp-astro-'));
+  mkdirSync(join(dist, '_astro'));
+  writeFileSync(join(dist, '_astro', 'w.js'), 'f()\n//# sourceMappingURL=w.js.map');
+  writeFileSync(join(dist, '_astro', 'w.js.map'), mapFor('../../src/components/Work.astro?astro&type=script&index=1&lang.ts', [[1, 0, 36]]));
+  const p = placer({ dist, base: 'http://h' });
+  await p.prepare(['http://h/_astro/w.js']);
+  assert.equal(p.place('http://h/_astro/w.js', 0, 0).where, 'src/components/Work.astro script 1, line 36 fn0');
+});

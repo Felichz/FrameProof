@@ -153,7 +153,11 @@ export function placer({ dist, base = '' } = {}) {
       if (o.source) {
         const file = clean(o.source);
         const fn = o.name || name;
-        return { file, where: `${file}:${o.line}${fn ? ' ' + fn : ''}`, mapped: true };
+        // An Astro component's <script> blocks are numbered from 0 and their lines count from the block:
+        // without the block's number, `Work.astro:36` is in any of them, and none is line 36 of the file.
+        const block = /\.astro\?astro&type=script&index=(\d+)/.exec(o.source)?.[1];
+        const at = block ? `${file} script ${block}, line ${o.line}` : `${file}:${o.line}`;
+        return { file, where: `${at}${fn ? ' ' + fn : ''}`, mapped: true };
       }
     }
     const short = url.replace(base, '').replace(/\?.*$/, '') || url;
