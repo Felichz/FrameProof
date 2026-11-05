@@ -8,7 +8,7 @@
 //
 // `--show` puts it on screen, `--headless` runs true headless (labeled: its frames aren't a screen's).
 import puppeteer from 'puppeteer-core';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { chromePath } from './machine.mjs';
@@ -42,6 +42,7 @@ export async function launch({ profile, show = false, headless = false, viewport
   // The window is a little taller than the viewport: its own bar takes the rest.
   const win = { width, height: height + 87 };
   const args = [...ARGS];
+  let cold = null;
   if (!headless) {
     if (mac && !show) args.push('--no-startup-window');
     else args.push(`--window-size=${win.width},${win.height}`, `--window-position=${show ? '0,0' : '-10000,-10000'}`);
@@ -50,7 +51,7 @@ export async function launch({ profile, show = false, headless = false, viewport
     executablePath,
     headless: headless ? true : false,
     defaultViewport: headless ? viewport : null,
-    userDataDir: profile ?? mkdtempSync(join(tmpdir(), 'frameproof-')),
+    userDataDir: profile ?? (cold = mkdtempSync(join(tmpdir(), 'frameproof-'))),
     args,
     ignoreDefaultArgs: ['--enable-automation'],
     waitForInitialPage: !(mac && !show && !headless),
@@ -93,7 +94,12 @@ export async function launch({ profile, show = false, headless = false, viewport
     return page;
   }
 
-  return { browser, newPage, placement, close: () => browser.close().catch(() => {}) };
+  // A throwaway profile goes with its browser.
+  const close = async () => {
+    await browser.close().catch(() => {});
+    if (cold) rmSync(cold, { recursive: true, force: true, maxRetries: 3 });
+  };
+  return { browser, newPage, placement, close };
 }
 
 /** The display's refresh, from the page's own frames, snapped to the rate it nearly is. */
