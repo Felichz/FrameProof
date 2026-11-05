@@ -132,7 +132,12 @@ export function prepareBuild(config, ref = 'worktree', { fresh = false } = {}) {
   rmSync(cache, { recursive: true, force: true });
   ensure(dir);
   const tar = git(root, ['archive', '--format=tar', sha], { encoding: 'buffer' });
-  spawnSync('tar', ['-x', '-C', dir], { input: tar });
+  // Extracted with cwd, not `-C <path>`: Git's tar on Windows reads `C:\...` as a remote host and fails.
+  // Checked: a failed export used to leave an empty folder, and npm then built the project it sat in.
+  const untar = spawnSync('tar', ['-x'], { cwd: dir, input: tar, encoding: 'utf8' });
+  if (untar.status !== 0 || (config.build?.command && !existsSync(join(dir, 'package.json')))) {
+    throw new Error(`exporting ${sha.slice(0, 7)} failed (tar exit ${untar.status}): ${(untar.stderr ?? '').trim().slice(0, 300)}`);
+  }
   const log = join(cache, 'build.log');
   if (config.build?.command) {
     const deps = dependencies(root, dir, log);
