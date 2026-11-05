@@ -65,6 +65,8 @@ export function readTrace(events, mainFrame) {
       list.push(e);
     }
   }
+  // A page at rest may do nothing that names its frame: the browser's own record of the frame says where it is.
+  if (!pidVotes.size && docs.get(mainFrame)?.pid !== undefined) pidVotes.set(docs.get(mainFrame).pid, 1);
   if (!pidVotes.size) throw new Error("no event in the trace names the page's main frame");
   const pagePid = [...pidVotes].sort((a, b) => b[1] - a[1])[0][0];
   const ours = new Set(pidVotes.keys());
@@ -207,9 +209,11 @@ function threadLabel(t, key, name, pid, list, place) {
   if (name === 'CrRendererMain') {
     const site = [...t.docs.values()].find((d) => d.pid === pid)?.url;
     try {
-      return `other-site:${site ? new URL(site).host : pid}`;
+      const host = site ? new URL(site).host : '';
+      // A renderer with no site of its own (a blank tab, a spare process) is no other site's.
+      return host ? `other-site:${host}` : 'other-renderer';
     } catch {
-      return `other-site:${pid}`;
+      return 'other-renderer';
     }
   }
   return `other:${name}`;

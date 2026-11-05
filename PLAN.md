@@ -249,3 +249,18 @@ Each phase ends with something that runs, and an acceptance test.
 ## For the portfolio
 
 The honest pitch is the story of the measuring, not a claim of speed: the wins, the experiments that failed, and the day the tool called a false alarm and got fixed for it. All numbers there come from runs on record. It belongs in the portfolio once phase 3 is done and it runs on something other than the portfolio itself.
+
+## Status
+
+As of 2026-11-04, version 0.1.0. Every command in [Shape](#shape) runs. Measured on one machine only: a 2020 Intel MacBook (i5-1038NG7, Iris Plus, 60 Hz), Chrome 156.
+
+**Found on the way, and settled.** macOS pulls an off-screen window back on screen (`--window-position=-10000,-10000` landed at 0,25, in view), and a minimized window draws no frames at all. On macOS Chrome now starts with no window and opens one in the background against the right edge of the screen, from `Target.createTarget`: one pixel column shows, the focus stays where it was, and frames are reported as on screen (90 of 90 presented at rest; 52 dropped with 40 ms burned a frame). The V8 profile doesn't show the main thread waiting on the GPU process for a shader link; the trace's `CommandBufferProxyImpl::WaitForGetOffset` under `GLES2Implementation::GetProgramiv` does, and the dossier now has a `gpuWait` from it.
+
+| Phase | State | Evidence |
+|---|---|---|
+| 0. Extract | Done, except its acceptance | The five files are `src/core/` behind a config. Not yet run on the portfolio: its scenes (the deck, the live previews) still have to be written as scenarios, so the KnowGraph and transform results are not reproduced here. |
+| 1. Agent contract | Done, except the agent benchmark | Envelope, exit codes, run store, `next`, `guide`, `doctor` (with a self-test that must find a known 200 ms freeze), `show`, `query`, `scenario check`, `report`, failed steps kept and retried once, `--background` and `wait`. `examples/janky-shop` has five planted causes. `npm run e2e` finds the four real ones by file and line, and doesn't blame the red herring. The benchmark with fresh agents (one sentence, no help) has not been run. |
+| 2. Honest statistics | Done | Screening and confirmation, Holm, the margin for `same`, rare episodes with Fisher, `calibrate`. `npm run sim`: false claims in 0 to 0.7% of A/A comparisons (limit 5%); a real +4 found in 86.5% of cells and never called better; `same` beyond the margin in 0%. On Chrome: the forced-layout fix in the sample app compared as `better` on `scroll/down@4x` (−24 late frames a step, interval −25.2 to −22.8, confirmed on fresh repetitions) and `scroll/up@4x` (−19). The replay of the 2026-11-04 runs is not done: those runs' raw repetitions weren't kept. |
+| 3. Any project | Mostly | `init` (framework detection, AGENTS.md block, Claude skill), git refs built with `git archive` and cached by commit, `dir:` and `url:` targets, servers with `{port}`, built-in `load`, `idle`, `scroll`, headless fallback for `ledger` and `check`. Checked on one other stack (see below); the second stack and another machine are still to do. |
+| 4. Blind spots | Mostly | `journey` reports long tasks in setups and between steps (in the sample app, the shader link on arrival, which no step measures). All-thread time with `moved` and `removed`, `affected` from JS and CSS coverage, budgets with `check`. Surfaces are named by kind (a frame, a video or canvas layer), not by element. The f59ed47 / b6329dd acceptance needs the portfolio's scenarios (phase 0). |
+| 5. Publish | Not started | npm, the docs site, the case study. It needs a license first (open question above). Until then it runs from GitHub: `npx -y github:Felichz/FrameProof`. |

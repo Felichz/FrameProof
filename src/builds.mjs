@@ -1,0 +1,154 @@
+// What a comparison compares: builds named the way a person names them.
+//
+//   worktree        the files as they are now, uncommitted changes included (built in place)
+//   HEAD, main, a1b2c3d, HEAD~2 ...
+//                   a commit: its files exported with `git archive` into a cache, the project's
+//                   node_modules linked in when the lockfile is the same (installed otherwise), built
+//                   there; cached by commit, so a ref is built once
+//   dir:<path>      a folder that is already built
+//   url:<url>       a site that is already up; nothing is built or served
+import { execFileSync, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { cpSync, existsSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import { join, relative, resolve } from 'node:path';
+import { dirOf, ensure } from './store.mjs';
+
+const git = (root, args, opts = {}) => execFileSync('git', args, { cwd: root, encoding: opts.encoding ?? 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 1 << 28, ...opts });
+
+export function isGit(root) {
+  try {
+    return git(root, ['rev-parse', '--is-inside-work-tree']).trim() === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function resolveRef(root, ref) {
+  return git(root, ['rev-parse', '--verify', `${ref}^{commit}`]).trim();
+}
+
+/** Uncommitted changes that could change what a build serves (the tool's own files aside). */
+export function dirtyFiles(root) {
+  if (!isGit(root)) return [];
+  return git(root, ['status', '--porcelain', '--untracked-files=all'])
+    .split('\n')
+    .filter(Boolean)
+    .map((l) => l.slice(3).replace(/^"|"$/g, '').split(' -> ').at(-1))
+    .filter((f) => !ignoredForBuild(f));
+}
+
+const ignoredForBuild = (f) => /^(perf\/|\.frameproof\/|frameproof\.config\.m?js$|AGENTS\.md$|CLAUDE\.md$|\.claude\/)/.test(f);
+
+/** A key for the files as they are: HEAD, and each changed file's size and time. */
+function worktreeKey(root) {
+  const h = createHash('sha1');
+  if (isGit(root)) {
+    h.update(git(root, ['rev-parse', 'HEAD']).trim());
+    for (const f of dirtyFiles(root)) {
+      const p = join(root, f);
+      h.update(f);
+      if (existsSync(p)) {
+        const s = statSync(p);
+        h.update(`${s.size}:${s.mtimeMs}`);
+      }
+    }
+  } else h.update(String(Date.now()));
+  return `wt-${h.digest('hex').slice(0, 10)}`;
+}
+
+function run(command, cwd, env, log) {
+  const r = spawnSync(command, { cwd, shell: true, env: { ...process.env, ...env }, encoding: 'utf8', maxBuffer: 1 << 26 });
+  writeFileSync(log, `$ ${command}\n${r.stdout ?? ''}\n${r.stderr ?? ''}`);
+  if (r.status !== 0) {
+    const tail = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim().split('\n').slice(-12).join('\n');
+    throw new Error(`\`${command}\` failed in ${cwd} (exit ${r.status}). Last lines:\n${tail}\nFull log: ${log}`);
+  }
+}
+
+const LOCKS = [
+  ['package-lock.json', 'npm ci --no-audit --no-fund'],
+  ['pnpm-lock.yaml', 'pnpm install --frozen-lockfile'],
+  ['yarn.lock', 'yarn install --frozen-lockfile'],
+  ['bun.lockb', 'bun install --frozen-lockfile'],
+];
+
+/** The project's dependencies in an exported tree: linked when its lockfile is the project's, else installed. */
+function dependencies(root, dir, log) {
+  if (!existsSync(join(dir, 'package.json'))) return 'none';
+  for (const [lock, install] of LOCKS) {
+    if (!existsSync(join(dir, lock))) continue;
+    const same = existsSync(join(root, lock)) && readFileSync(join(root, lock)).equals(readFileSync(join(dir, lock)));
+    if (same && existsSync(join(root, 'node_modules'))) {
+      symlinkSync(join(root, 'node_modules'), join(dir, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
+      return 'linked';
+    }
+    run(install, dir, {}, log);
+    return 'installed';
+  }
+  if (existsSync(join(root, 'node_modules'))) {
+    symlinkSync(join(root, 'node_modules'), join(dir, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
+    return 'linked';
+  }
+  return 'none';
+}
+
+/**
+ * A build ready to serve: { ref, key, label, dir, out, url? }. `fresh` rebuilds a cached ref. Building the
+ * worktree runs the project's build in place, as a person would, and copies its output to the cache.
+ */
+export function prepareBuild(config, ref = 'worktree', { fresh = false } = {}) {
+  const root = config.root;
+  if (ref.startsWith('url:')) return { ref, key: ref, label: ref.slice(4), url: ref.slice(4), out: null, dir: null };
+  if (ref.startsWith('dir:')) {
+    const out = resolve(root, ref.slice(4));
+    if (!existsSync(out)) throw new Error(`no folder at ${out}`);
+    return { ref, key: `dir-${createHash('sha1').update(out).digest('hex').slice(0, 8)}`, label: relative(root, out) || '.', out, dir: out };
+  }
+  const cacheRoot = ensure(join(dirOf(root), 'builds'));
+  const outRel = config.build?.out ?? config.out ?? '.';
+
+  if (ref === 'worktree' || ref === '.') {
+    if (!config.build?.command) return { ref: 'worktree', key: worktreeKey(root), label: 'worktree', dir: root, out: resolve(root, outRel) };
+    const key = worktreeKey(root);
+    const cache = join(cacheRoot, key);
+    const out = join(cache, 'out');
+    if (!fresh && existsSync(join(cache, 'done'))) return { ref: 'worktree', key, label: 'worktree', dir: root, out, cached: true };
+    ensure(cache);
+    run(config.build.command, root, config.build.env, join(cache, 'build.log'));
+    rmSync(out, { recursive: true, force: true });
+    cpSync(resolve(root, outRel), out, { recursive: true, dereference: true });
+    writeFileSync(join(cache, 'done'), new Date().toISOString());
+    return { ref: 'worktree', key, label: 'worktree', dir: root, out };
+  }
+
+  if (!isGit(root)) throw new Error(`"${ref}" is a git ref, and ${root} is not a git repository: use worktree, dir:<path> or url:<url>`);
+  const sha = resolveRef(root, ref);
+  const key = sha.slice(0, 12);
+  const cache = join(cacheRoot, key);
+  const dir = join(cache, 'src');
+  const label = `${ref}${ref === sha ? '' : ` (${sha.slice(0, 7)})`}`;
+  const out = resolve(dir, outRel);
+  if (!fresh && existsSync(join(cache, 'done'))) return { ref, sha, key, label, dir, out, cached: true };
+  rmSync(cache, { recursive: true, force: true });
+  ensure(dir);
+  const tar = git(root, ['archive', '--format=tar', sha], { encoding: 'buffer' });
+  spawnSync('tar', ['-x', '-C', dir], { input: tar });
+  const log = join(cache, 'build.log');
+  if (config.build?.command) {
+    const deps = dependencies(root, dir, log);
+    run(config.build.command, dir, config.build.env, log);
+    writeFileSync(join(cache, 'deps'), deps);
+  }
+  if (!existsSync(out)) throw new Error(`building ${label} left no ${outRel} folder (see ${log})`);
+  writeFileSync(join(cache, 'done'), new Date().toISOString());
+  return { ref, sha, key, label, dir, out };
+}
+
+/** Files changed between two refs (worktree counts as one). */
+export function changedFiles(root, base, head) {
+  if (!isGit(root)) return [];
+  const args = head === 'worktree' || head === '.' ? ['diff', '--name-only', base] : ['diff', '--name-only', base, head];
+  const files = new Set(git(root, args).split('\n').filter(Boolean));
+  if (head === 'worktree' || head === '.') for (const f of git(root, ['ls-files', '--others', '--exclude-standard']).split('\n').filter(Boolean)) files.add(f);
+  return [...files];
+}

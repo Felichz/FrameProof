@@ -2,7 +2,7 @@
 
 Frame-level performance evidence for web apps, built to be used by coding agents.
 
-> **Status: plan.** There is no code in this repo yet. The design is in [PLAN.md](PLAN.md). Everything below describes what is being built; the commands don't run today. The tooling it comes from exists and works, inside one project.
+> **Status: 0.1.0, not on npm yet.** Every command below runs, from GitHub: `npx -y github:Felichz/FrameProof next`. Checked on macOS (Chrome 156, an Intel laptop) against the sample app in [`examples/janky-shop`](examples/janky-shop); Windows and Linux runs are still to do. What is done and what isn't, phase by phase, is at the end of [PLAN.md](PLAN.md#status).
 
 ## Use it
 
@@ -10,7 +10,7 @@ Tell your agent:
 
 > Use github.com/Felichz/frameproof to find out why scrolling stutters here, and fix it.
 
-That's the whole setup. The agent reads [AGENTS.md](AGENTS.md), runs `npx frameproof@latest next` in your project, and the tool walks it through the rest, one step at a time. It will come back to you for one thing: which interactions matter most and what you won't trade away.
+That's the whole setup. The agent reads [AGENTS.md](AGENTS.md), runs `npx -y github:Felichz/FrameProof next` in your project, and the tool walks it through the rest, one step at a time. It will come back to you for one thing: which interactions matter most and what you won't trade away.
 
 It works with any agent that has a shell, on a machine with a display and a GPU. Without those (a cloud container, most CI), it can still count work and hold budgets, and it says it can't judge frames.
 

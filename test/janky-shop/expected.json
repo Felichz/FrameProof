@@ -1,0 +1,9 @@
+{
+  "planted": [
+    { "id": "forced-layout-scroll", "file": "src/sticky-header.js", "scenario": "scroll", "kind": "layout", "forced": true, "match": "sticky-header\\.js" },
+    { "id": "shader-link-on-arrival", "file": "src/hero-gl.js", "scenario": "journey", "kind": "shaders", "match": "hero-gl\\.js|getProgramParameter|linkProgram" },
+    { "id": "whole-page-restyle", "file": "src/cart.js", "scenario": "open-cart", "kind": "style", "match": "cart\\.js|style" },
+    { "id": "raf-never-rests", "file": "src/ticker.js", "scenario": "idle", "kind": "askers", "match": "ticker\\.js" }
+  ],
+  "redHerring": { "id": "catalog-snapshot", "file": "src/catalog.js", "note": "formatPrices and the cart's JSON snapshot look costly and measure as nothing" }
+}

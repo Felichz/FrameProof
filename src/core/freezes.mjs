@@ -44,6 +44,8 @@ export function dossier(t, run, { t0, vsyncMs, placeTrace, profiles, window: spa
   out.main = { busy: Math.round(tasks.reduce((s, x) => s + overlap(x), 0)), tasks: [] };
   for (const task of [...tasks].sort((x, y) => y.dur - x.dur).slice(0, 4)) out.main.tasks.push(breakDown(t, task, main, t0, placeTrace));
 
+  out.gpuWait = gpuWait(main, a, b, overlap);
+
   const js = samples(t, profiles, a, b, placeTrace);
   out.js = js.self;
   out.jsBy = js.by;
@@ -87,6 +89,34 @@ export function dossier(t, run, { t0, vsyncMs, placeTrace, profiles, window: spa
 
   out.verdict = verdict(out);
   return out;
+}
+
+// The page's main thread waiting on the GPU process: a WebGL call that needs an answer (a program's link
+// status, a pixel read) blocks until the GPU process has done everything before it. V8's samples don't show
+// it (the wait is in native code), the trace does.
+const GPU_WAIT = /^(CommandBufferProxyImpl::WaitForGetOffset|CommandBufferProxyImpl::WaitForToken|CommandBufferProxyImpl::WaitSyncToken|GpuChannelHost::Send)/;
+const GL_CALL = /^GLES2Implementation::(\w+)/;
+const SHADER_GL = /^(GetProgramiv|GetShaderiv|GetProgramInfoLog|GetShaderInfoLog|LinkProgram|CompileShader|GetUniformLocation|GetAttribLocation|GetActiveUniform)$/;
+
+function gpuWait(main, a, b, overlap) {
+  let ms = 0;
+  const calls = {};
+  const stack = [];
+  for (const e of main) {
+    if (e.ts > b) break;
+    while (stack.length && stack.at(-1).ts + stack.at(-1).dur <= e.ts) stack.pop();
+    if (GPU_WAIT.test(e.name) && e.ts + e.dur >= a && !stack.some((x) => GPU_WAIT.test(x.name))) {
+      const w = overlap(e);
+      ms += w;
+      const gl = [...stack].reverse().map((x) => GL_CALL.exec(x.name)?.[1]).find(Boolean) ?? 'other';
+      calls[gl] = (calls[gl] ?? 0) + w;
+    }
+    stack.push(e);
+  }
+  if (ms < 1) return null;
+  const top = Object.entries(calls).sort((x, y) => y[1] - x[1]);
+  const shaderMs = top.filter(([c]) => SHADER_GL.test(c)).reduce((s, [, v]) => s + v, 0);
+  return { ms: Math.round(ms), shaderMs: Math.round(shaderMs), calls: Object.fromEntries(top.slice(0, 4).map(([c, v]) => [c, Math.round(v)])) };
 }
 
 /** One task, split into what ran in it. */
@@ -160,7 +190,8 @@ function samples(t, profiles, a, b, placeTrace) {
       const c = n.callFrame;
       if (!c?.url) continue;
       const placed = placeTrace({ url: c.url, lineNumber: c.lineNumber + 1, columnNumber: c.columnNumber + 1, functionName: c.functionName });
-      if (placed.mapped && !placed.file.includes('node_modules')) w = placed.where;
+      // The project's own code: mapped to a source, or served as it is written (no build), never a library.
+      if (!placed.tool && !placed.file.includes('node_modules') && (placed.mapped || !/[.-][a-f0-9]{8,}\.m?js$|\.min\.js$/.test(placed.file))) w = placed.where;
     }
     ownOf.set(id, w);
     return w;
@@ -187,15 +218,30 @@ function samples(t, profiles, a, b, placeTrace) {
 export function verdict(f) {
   const window = f.ms;
   const top = f.main.tasks[0];
+  const own = (f.jsBy?.[0] ?? '').replace(/ [\d.]+ ms$/, '');
+  const row = (d) => `${d.kind}${d.forced ? ' forced' : ''} ${d.what}${d.where ? ' at ' + d.where : ''}${d.doc && d.doc !== 'page' && d.doc !== '?' ? ' in ' + d.doc : ''}`;
   const culprit = (task) => {
     if (!task) return '';
+    // Style or layout a script forced is what made the script long: named first when it is a large part.
+    const forced = task.detail.filter((d) => d.forced).sort((x, y) => y.ms - x.ms)[0];
+    if (forced && forced.ms >= task.ms * 0.35) {
+      const from = task.detail.find((d) => d.kind === 'script' && d.where && d.where !== forced.where)?.where;
+      return `${row(forced)}${from ? `, from script at ${from}` : ''}`;
+    }
     const d = task.detail[0];
-    return d ? `${d.kind} ${d.what}${d.where ? ' at ' + d.where : ''}${d.doc && d.doc !== 'page' && d.doc !== '?' ? ' in ' + d.doc : ''}${d.forced ? ' (forced)' : ''}` : Object.entries(task.kinds).sort((x, y) => y[1] - x[1])[0]?.[0] ?? 'untraced work';
+    if (!d) return Object.entries(task.kinds).sort((x, y) => y[1] - x[1])[0]?.[0] ?? 'untraced work';
+    // A script with no place of its own (a module's evaluation, a task) is named by where its time went.
+    if (d.kind === 'script' && !d.where && own) return `script ${d.what}, most of it in ${own}`;
+    // Style or layout of a frame, with no script under it: what invalidated it is the lead.
+    const lead = (d.kind === 'style' || d.kind === 'layout') && !d.where ? f.invalidations?.find((x) => x.replace(/^\d+x /, '').startsWith(`${d.kind}:`)) : null;
+    if (lead) return `${row(d)}, after ${lead.replace(/^\d+x /, '')}`;
+    return row(d);
   };
   const other = Object.entries(f.threads ?? {}).filter(([k]) => k.startsWith('other-site:')).sort((x, y) => y[1] - x[1])[0];
   const surface = f.surfaces?.[0];
   const named = surface ? `${surface.kind}, ${surface.sink}` : "another frame's surface";
   if (f.shaders && f.shaders.ms >= window * 0.3) return `page main thread waiting on shaders ${f.shaders.ms} ms: ${f.shaders.where[0]?.replace(/ [\d.]+ ms$/, '')}`;
+  if (f.gpuWait && f.gpuWait.ms >= window * 0.3) return `page main thread waiting on the GPU process ${f.gpuWait.ms} ms${f.gpuWait.shaderMs >= f.gpuWait.ms * 0.5 ? ' (linking shaders: ' + Object.keys(f.gpuWait.calls).filter((c) => SHADER_GL.test(c)).join(', ') + ')' : ` (${Object.keys(f.gpuWait.calls).join(', ')})`}${own ? ' at ' + own : ''}`;
   if (f.main.busy >= window * 0.5) return `page main thread busy ${f.main.busy} ms: ${culprit(top)}`;
   if (f.waitedOnSurface && other) return `waiting on ${other[0].replace('other-site:', '')}'s frame (${named}; its main thread busy ${other[1]} ms)`;
   if (f.gpu && f.gpu.busy >= window * 0.5) return `GPU busy ${f.gpu.busy} ms: ${f.gpu.shaders ? `${f.gpu.shaders} shaders compiled, ` : ''}raster ${f.gpu.raster} ms, composite ${f.gpu.composite} ms`;

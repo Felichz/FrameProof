@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Janky Shop</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="top">
+      <strong class="brand">Janky Shop</strong>
+      <p class="promo"><span data-ticker>Free shipping on orders over $50</span></p>
+      <button type="button" class="cart-button" data-cart-button>Cart <span data-cart-count>0</span></button>
+    </header>
+    <main>
+      <section class="hero">
+        <canvas data-hero width="1200" height="320"></canvas>
+        <div class="hero-copy">
+          <h1>Things you didn't know you needed</h1>
+          <p>Hand-picked, small batch, shipped from somewhere near you.</p>
+        </div>
+      </section>
+      <section class="grid" data-grid aria-label="Products"></section>
+    </main>
+    <dialog class="cart" data-cart>
+      <h2>Your cart</h2>
+      <ul data-cart-items></ul>
+      <p class="total">Total: <span data-cart-total>$0.00</span></p>
+      <button type="button" data-cart-close>Close</button>
+    </dialog>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

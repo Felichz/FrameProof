@@ -1,0 +1,113 @@
+// The entry: parse, find the project, run one command, print its envelope, return the exit code.
+import { spawn } from 'node:child_process';
+import { openSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { findRoot, loadConfig } from '../config.mjs';
+import { fingerprint } from '../machine.mjs';
+import { dirOf, ensure, newRunId, Run } from '../store.mjs';
+import { parseArgs, UsageError } from './args.mjs';
+import { envelope, print } from './envelope.mjs';
+
+const COMMANDS = {
+  next: () => import('../commands/next.mjs'),
+  guide: () => import('../commands/guide.mjs'),
+  doctor: () => import('../commands/doctor.mjs'),
+  init: () => import('../commands/init.mjs'),
+  scenario: () => import('../commands/scenario.mjs'),
+  calibrate: () => import('../commands/calibrate.mjs'),
+  compare: () => import('../commands/compare.mjs'),
+  price: () => import('../commands/price.mjs'),
+  freezes: () => import('../commands/freezes.mjs'),
+  show: () => import('../commands/show.mjs'),
+  query: () => import('../commands/query.mjs'),
+  ledger: () => import('../commands/ledger.mjs'),
+  check: () => import('../commands/check.mjs'),
+  affected: () => import('../commands/affected.mjs'),
+  journal: () => import('../commands/journal.mjs'),
+  report: () => import('../commands/report.mjs'),
+  wait: () => import('../commands/wait.mjs'),
+};
+/** The commands that measure, and so may run for minutes: they take --background. */
+const LONG = new Set(['calibrate', 'compare', 'price', 'freezes', 'ledger', 'check', 'scenario']);
+
+export const HELP = `frameproof: frame-level performance evidence for web apps, for coding agents.
+
+Start with: frameproof next   (it says the one thing to do now, with its command)
+
+  next                      the one thing to do now
+  guide [topic]             the manual for this version
+  doctor                    can this machine measure right now?
+  init                      add the config, goals, journal and scenarios folder
+  scenario check <file>     run a scenario once and say what each step really did
+  calibrate -s <scenario>   noise floor, smallest effect visible, repetitions needed
+  compare --base --head     alternated A/B, with a verdict
+  price --inject <css|js>   what a change would be worth, before making it
+  freezes -s <scenario>     freezes grouped by cause
+  show <id> [section]       one freeze's dossier, or one run
+  query <run> <what>        hot, forced, askers, threads, long-tasks, failures
+  ledger -s <scenario>      counted work per step
+  check                     budgets; exit 1 on a break, for CI
+  affected                  the scenarios that run the changed files
+  journal                   the experiments so far
+  report [run]              the result written for a person
+  wait <run>                block until a background run is done
+
+Every command prints one JSON envelope: { status, summary, machine, run, evidence, next }.
+Exit codes: 0 verdict or done, 1 regression or broken budget, 2 not measurable, 3 usage.`;
+
+export async function main(argv) {
+  let args;
+  try {
+    args = parseArgs(argv);
+  } catch (e) {
+    return print(envelope({ status: 'error', summary: e.message, next: ['frameproof guide'] }));
+  }
+  const [name, ...rest] = args._;
+  const flags = args.flags;
+  const opts = { full: !!flags.full, pretty: true };
+  if (!name || name === 'help' || (flags.help && !name)) {
+    return print(envelope({ status: 'ok', summary: 'frameproof, and its commands. Start with `frameproof next`.', text: HELP, next: ['frameproof next'] }), { ...opts, full: true });
+  }
+  const load = COMMANDS[name];
+  if (!load) return print(envelope({ status: 'error', summary: `no command "${name}"`, evidence: [{ commands: Object.keys(COMMANDS) }], next: ['frameproof help'] }), opts);
+
+  const root = findRoot(flags.root ?? process.cwd());
+  try {
+    const config = await loadConfig(root);
+    if (flags.background && LONG.has(name)) return print(background(root, name, argv), opts);
+    const mod = await load();
+    let machine;
+    const ctx = {
+      root,
+      config,
+      flags,
+      args: rest,
+      get machine() {
+        return (machine ??= fingerprint());
+      },
+    };
+    const env = await mod.default(ctx);
+    if (env.machine === undefined || env.machine === null) env.machine = ctx.machine.id;
+    const { rest: restCmd, full: whole, ...body } = env;
+    return print(envelope(body), { ...opts, rest: restCmd, full: opts.full || whole === true });
+  } catch (e) {
+    if (e instanceof UsageError) return print(envelope({ status: 'error', summary: e.message, next: e.next.length ? e.next : [`frameproof guide ${name}`] }), opts);
+    if (process.env.FRAMEPROOF_DEBUG) process.stderr.write(`${e.stack}\n`);
+    return print(envelope({ status: 'error', summary: `${name} failed: ${e.message.split('\n')[0]}`, evidence: e.message.includes('\n') ? [{ detail: e.message.split('\n').slice(1, 14).join('\n') }] : [], next: ['frameproof doctor'] }), opts);
+  }
+}
+
+/** The same command in a process of its own, writing to a run folder that can be read at any time. */
+function background(root, name, argv) {
+  const id = newRunId();
+  const dir = ensure(join(dirOf(root), 'runs', id));
+  const run = Run.create(root, { command: name, argv, background: true }, id);
+  const out = openSync(join(dir, 'output.json'), 'w');
+  const err = openSync(join(dir, 'progress.log'), 'w');
+  const bin = fileURLToPath(new URL('../../bin/frameproof.mjs', import.meta.url));
+  const child = spawn(process.execPath, [bin, ...argv.filter((a) => a !== '--background'), '--run-id', id], { cwd: process.cwd(), detached: true, stdio: ['ignore', out, err] });
+  child.unref();
+  run.save({ pid: child.pid });
+  return envelope({ status: 'ok', summary: `${name} is running in the background as ${id}`, run: id, evidence: [{ progress: `.frameproof/runs/${id}/progress.log` }], next: [`frameproof wait ${id}`] });
+}

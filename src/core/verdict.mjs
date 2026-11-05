@@ -132,13 +132,13 @@ function stoppedWhy(c) {
 function judgeConfirmation(c, x) {
   const { kind, first } = c.outcome;
   const firstP = kind === 'typical' ? first.p : first.episodes.p;
-  if (!x?.m) return report(c, 'inconclusive', first, `first run p=${round(firstP, 3)}, and the time ran out before a confirmation`);
+  if (!x?.m) return report(c, 'inconclusive', first, `first run p${fmtP(firstP)}, and the time ran out before a confirmation`);
   const m = x.m;
   const before = direction(first)[kind];
   const after = direction(m)[kind];
-  if (x.adjusted < ALPHA && after === before) return report(c, after > 0 ? 'worse' : 'better', m, `confirmed on fresh repetitions (${kind === 'typical' ? 'typical frames' : 'rare episodes'}, p=${round(x.adjusted, 3)} after Holm)`, first);
-  if (inside(m.interval, c.margin) && m.n.base >= MIN_FOR_SAME && kind === 'typical') return report(c, 'same', m, `first run p=${round(firstP, 3)} did not survive the confirmation run, and the fresh interval sits inside the margin`, first);
-  return report(c, 'inconclusive', m, `first run p=${round(firstP, 3)} did not survive the confirmation run`, first);
+  if (x.adjusted < ALPHA && after === before) return report(c, after > 0 ? 'worse' : 'better', m, `confirmed on fresh repetitions (${kind === 'typical' ? 'typical frames' : 'rare episodes'}, p${fmtP(x.adjusted)} after Holm)`, first);
+  if (inside(m.interval, c.margin) && m.n.base >= MIN_FOR_SAME && kind === 'typical') return report(c, 'same', m, `first run p${fmtP(firstP)} did not survive the confirmation run, and the fresh interval sits inside the margin`, first);
+  return report(c, 'inconclusive', m, `first run p${fmtP(firstP)} did not survive the confirmation run`, first);
 }
 
 function report(c, verdict, m, reason, first) {
@@ -177,3 +177,6 @@ export function accumulateEpisodes(list) {
   const head = total('head');
   return { base, head, runs: list.length, p: base.n && head.n ? fisher(base.k, base.n, head.k, head.n) : 1 };
 }
+
+/** A p-value as it should be read: "=0.020", or "<0.001" rather than a zero no test can give. */
+export const fmtP = (p) => (p < 0.001 ? '<0.001' : `=${round(p, 3)}`);

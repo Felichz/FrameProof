@@ -2,19 +2,21 @@
 
 You were probably given this repo and asked to make a web project smoother, or to find out why it stutters. This page is all you need.
 
-> **Status: not built yet.** This is the target for the first release, and none of these commands run today. If you are here to use the tool, stop and tell the person so. If you are here to build it, read [PLAN.md](PLAN.md).
+> **Status: 0.1.0, not on npm yet.** Run it from GitHub: wherever this page says `npx frameproof`, use `npx -y github:Felichz/FrameProof`. If you are here to work on the tool itself, read [PLAN.md](PLAN.md).
 
 ## Start
 
 You don't need to clone this repo. From the root of the project you are working on:
 
 ```bash
-npx frameproof@latest next
+npx -y github:Felichz/FrameProof next
 ```
 
 `next` looks at the project and the machine and tells you the one thing to do now, with the exact command. Run what it says, then run `next` again. It covers setup, so don't plan the steps yourself. Everything prints JSON with a `status`, a `summary` and a `next` list.
 
-For the details of any command, ask the tool, not this page: `npx frameproof guide [topic]`. Its answers match the installed version.
+Where the output says `frameproof <command>`, run it the way you started it (`npx -y github:Felichz/FrameProof <command>`). Long commands take `--background` and return a run id; `wait <run>` blocks until they're done.
+
+For the details of any command, ask the tool, not this page: `npx -y github:Felichz/FrameProof guide [topic]`. Its answers match the installed version.
 
 ## The loop
 
@@ -22,7 +24,7 @@ For the details of any command, ask the tool, not this page: `npx frameproof gui
 2. **Read the journal.** `perf/JOURNAL.md` lists what was already tried. Don't repeat a dead end without a new reason.
 3. **Find the cost.** `freezes` and `query` name it, down to the source line. Don't open trace files or write parsers: if a question has no command, say so.
 4. **Price it, when you can.** `price` injects a change to see what it's worth before you make it.
-5. **Change one thing, on a branch.**
+5. **Change one thing.** Leave it uncommitted: `compare` judges the files as they are against the last commit.
 6. **Judge it with `compare`.** Pass `--note` with your hypothesis, so it lands in the journal.
 7. **Report with `report`**, which writes the result for a person.
 
@@ -42,7 +44,7 @@ Counts of work (`ledger`) say where work went, not whether frames improved. Only
 ## Rules
 
 - Don't kill processes you didn't start. If the machine is busy, say so and wait.
-- Don't open visible browser windows. The tool places Chrome off screen by itself.
+- Don't open visible browser windows. The tool keeps Chrome out of sight by itself (off screen, or against the screen's edge on macOS) and never takes the focus.
 - Don't compare numbers from different machines or different days.
-- A change that alters what a visitor sees or when it happens is the person's call: describe it, keep it on a branch, ask.
+- A change that alters what a visitor sees or when it happens is the person's call: describe it, keep it uncommitted, ask.
 - The tool gives evidence. It doesn't decide trade-offs, and neither does a p-value.
