@@ -8,6 +8,7 @@
 //   dir:<path>      a folder that is already built
 //   url:<url>       a site that is already up; nothing is built or served
 import { execFileSync, spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { cpSync, existsSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
@@ -40,8 +41,16 @@ export function dirtyFiles(root) {
 const ignoredForBuild = (f) => /^(perf\/|\.frameproof\/|frameproof\.config\.m?js$|AGENTS\.md$|CLAUDE\.md$|\.claude\/)/.test(f);
 
 /** A key for the files as they are: HEAD, and each changed file's size and time. */
-function worktreeKey(root) {
+/** How a build is made, as part of its cache key: the same files built with another command or another
+    environment (SOURCEMAP=1, say) are another build (ADR 0001 D3). */
+function recipe(config) {
+  const b = config.build ?? {};
+  return JSON.stringify({ command: b.command ?? null, env: b.env ?? {}, out: b.out ?? config.out ?? null });
+}
+
+function worktreeKey(root, config) {
   const h = createHash('sha1');
+  h.update(recipe(config));
   if (isGit(root)) {
     h.update(git(root, ['rev-parse', 'HEAD']).trim());
     for (const f of dirtyFiles(root)) {
@@ -56,8 +65,11 @@ function worktreeKey(root) {
   return `wt-${h.digest('hex').slice(0, 10)}`;
 }
 
+const WATCHDOG = fileURLToPath(new URL('./build-watchdog.mjs', import.meta.url));
+
+/** A build command, under a watchdog that ends it if frameproof goes away (ADR 0001 D12). */
 function run(command, cwd, env, log) {
-  const r = spawnSync(command, { cwd, shell: true, env: { ...process.env, ...env }, encoding: 'utf8', maxBuffer: 1 << 26 });
+  const r = spawnSync(process.execPath, [WATCHDOG, String(process.pid), command], { cwd, env: { ...process.env, ...env }, encoding: 'utf8', maxBuffer: 1 << 26 });
   writeFileSync(log, `$ ${command}\n${r.stdout ?? ''}\n${r.stderr ?? ''}`);
   if (r.status !== 0) {
     const tail = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim().split('\n').slice(-12).join('\n');
@@ -108,8 +120,8 @@ export function prepareBuild(config, ref = 'worktree', { fresh = false } = {}) {
   const outRel = config.build?.out ?? config.out ?? '.';
 
   if (ref === 'worktree' || ref === '.') {
-    if (!config.build?.command) return { ref: 'worktree', key: worktreeKey(root), label: 'worktree', dir: root, out: resolve(root, outRel) };
-    const key = worktreeKey(root);
+    if (!config.build?.command) return { ref: 'worktree', key: worktreeKey(root, config), label: 'worktree', dir: root, out: resolve(root, outRel) };
+    const key = worktreeKey(root, config);
     const cache = join(cacheRoot, key);
     const out = join(cache, 'out');
     if (!fresh && existsSync(join(cache, 'done'))) return { ref: 'worktree', key, label: 'worktree', dir: root, out, cached: true };
@@ -123,7 +135,7 @@ export function prepareBuild(config, ref = 'worktree', { fresh = false } = {}) {
 
   if (!isGit(root)) throw new Error(`"${ref}" is a git ref, and ${root} is not a git repository: use worktree, dir:<path> or url:<url>`);
   const sha = resolveRef(root, ref);
-  const key = sha.slice(0, 12);
+  const key = `${sha.slice(0, 12)}-${createHash('sha1').update(recipe(config)).digest('hex').slice(0, 6)}`;
   const cache = join(cacheRoot, key);
   const dir = join(cache, 'src');
   const label = `${ref}${ref === sha ? '' : ` (${sha.slice(0, 7)})`}`;
