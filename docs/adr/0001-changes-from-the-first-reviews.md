@@ -1,6 +1,6 @@
 # ADR 0001: Changes from the first two reviews
 
-- **Status:** Accepted, 2026-11-05.
+- **Status:** Done, 2026-11-05 (accepted the same day; implemented in the commits listed at the end).
 - **Context:** [the Mac review](../reviews/2026-11-05-portfolio-on-mac.md) and [the Windows review](../reviews/2026-11-05-portfolio-on-windows.md),
   both from the same two days of work on the portfolio. Points are cited as M1..M7 and W1..W10.
 
@@ -119,3 +119,19 @@ kinds:
   runs (about the time of `-n` deep repetitions). Both buy the two things the reviews found most
   expensive: measuring a mode the project doesn't ship in, and chasing a freeze no visitor gets.
 - Projects that relied on `price` running `1x` and `4x` pass `--throttle 1,4`.
+
+## Implemented
+
+| Decisions | Commit |
+|---|---|
+| D4, D10, D13, D14 | e320a26 |
+| D3, D12 | 518ce64 |
+| D1, D2, D5 to D9, D11, D15, D16 | 3bafc13 |
+| The guide and AGENTS.md; D5 revised | 45dc94e |
+| Attribution and the static server's host (before this ADR) | 8a28c25, ec314a2, 553db63 |
+
+Checked on 2026-11-05: `npm test`, 45 tests, all pass; `npm run e2e -- --compare` on the sample app, on the
+Mac, finds every planted cause (the forced layout at `sticky-header.js:6`, confirmed by light runs in 4/4
+and 3/4; the whole-page restyle at `cart.js:28`; the shader link on arrival; the frame callback that never
+rests), doesn't blame the red herring, calls the fix `better` on `scroll/down@4x` and `scroll/up@4x`, and
+counts its forced layouts at 200 and 180 a step down to 8 and 7. Not checked on Windows yet.
