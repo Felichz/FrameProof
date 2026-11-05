@@ -5,7 +5,8 @@ import { dirtyFiles, isGit } from '../builds.mjs';
 import { repetitionsFor } from '../core/stats.mjs';
 import { ready } from '../session.mjs';
 import { abSession, compact } from './ab.mjs';
-import { appendJournal, guard, openRun, readCalibration, scenariosFor, throttles } from './_shared.mjs';
+import { appendJournal, baseDrift, guard, modeNote, openRun, readCalibration, scenariosFor, throttles } from './_shared.mjs';
+import { workRun } from './ledger.mjs';
 import { affectedScenarios } from './affected.mjs';
 
 export default async function compare(ctx) {
@@ -36,17 +37,26 @@ export default async function compare(ctx) {
   const same = a.key === b.key;
   const out = await abSession(ctx, { run, base: a, head: b, scenarios, throttles: ths, reps: number(f, 'batch', 4), minutes: number(f, 'minutes', 20), looks: number(f, 'looks', 6) });
 
-  const summary = summarize(out, { base: a.label, head: b.label, same }) + (ctx.loadNote ? ` (${ctx.loadNote})` : '');
+  for (const [id, note] of Object.entries(baseDrift(ctx, { run, build: a, results: out.results }))) {
+    const v = out.results.find((x) => x.id === id);
+    v.reason = `${v.reason ?? ''}${v.reason ? '. ' : ''}${note}`;
+  }
+  const mode = modeNote(out.records);
+  let summary = summarize(out, { base: a.label, head: b.label, same }) + (mode ? ` ${mode}.` : '') + (ctx.loadNote ? ` (${ctx.loadNote})` : '');
+  if (out.lost) summary = `partial: ${out.lost}; what follows covers what was measured before. ${summary}`;
+  // What the change did to the work, beside the verdict and never as one (ADR 0001 D15).
+  const counted = f['no-counts'] || same ? null : await countsOf(ctx, { run, scenarios, base, head, throttle: ths[0] });
   const cal = readCalibration(ctx);
   const next = suggest(ctx, out, { base, head, scenarios, ths, cal });
-  const result = { status: out.status, summary, base: a.label, head: b.label, cells: out.results, placements: out.placements, strata: out.strata, minutes: out.elapsedMin, scenariosChosen: chosen };
+  const result = { status: out.status, summary, mode: mode || undefined, base: a.label, head: b.label, cells: out.results, counted: counted ?? undefined, placements: out.placements, strata: out.strata, minutes: out.elapsedMin, scenariosChosen: chosen };
   run.finish(result);
   const journal = f['no-journal'] ? null : appendJournal(ctx, { kind: 'compare', run: run.id, hypothesis: string(f, 'note', ''), change: `${a.label} → ${b.label}`, status: out.status, summary, cells: out.results });
   return {
     status: out.status,
     summary,
     run: run.id,
-    evidence: out.results.map(compact),
+    evidence: [...out.results.map(compact), ...(counted?.length ? [{ counted: 'work counted once a build: not a verdict', changes: counted.slice(0, 6) }] : [])],
+    mode: mode || undefined,
     next,
     window: out.placements.join('; '),
     journal: journal ?? undefined,
@@ -83,4 +93,25 @@ function suggest(ctx, out, { base, head, scenarios, ths, cal }) {
   if (!Object.keys(cal.cells).length) next.push(`frameproof calibrate -s ${scenarios[0].name}   (margins here are the default ±${ctx.config.margin}, not this machine's)`);
   next.push(`frameproof report ${'$RUN'}`.replace('$RUN', 'latest'));
   return next.slice(0, 4);
+}
+
+/** One repetition of each build, counted: the largest changes in forced style and layout, frames and timers
+    asked for, and main-thread time, per step. Says where work went; only the verdict says what a visitor
+    gets. */
+async function countsOf(ctx, { run, scenarios, base, head, throttle }) {
+  try {
+    const [a, b] = [await workRun(ctx, { run, scenarios, ref: base, n: 1, throttle }), await workRun(ctx, { run, scenarios, ref: head, n: 1, throttle })];
+    const out = [];
+    for (const sb of b.steps) {
+      const sa = a.steps.find((x) => x.scenario === sb.scenario && x.step === sb.step);
+      if (!sa?.least || !sb.least || sb.scenario === 'journey') continue;
+      for (const k of ['forced', 'rafs', 'timers', 'styleElements', 'layoutObjects', 'busyMs']) {
+        const [x, y] = [Math.round(sa.least[k] ?? 0), Math.round(sb.least[k] ?? 0)];
+        if (x !== y && Math.abs(x - y) >= Math.max(1, 0.1 * Math.max(x, y))) out.push({ step: `${sb.scenario}/${sb.step}`, what: k, base: x, head: y });
+      }
+    }
+    return out.sort((p, q) => Math.abs(q.head - q.base) / Math.max(1, q.base) - Math.abs(p.head - p.base) / Math.max(1, p.base));
+  } catch (e) {
+    return [{ error: `counting failed: ${e.message.split('\n')[0]}` }];
+  }
 }

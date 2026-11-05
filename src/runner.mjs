@@ -8,7 +8,7 @@ import { launch, sleep, vsyncOf } from './browser.mjs';
 import { findFreezes, dossier } from './core/freezes.mjs';
 import { reduceWork } from './core/ledger.mjs';
 import { placer, scriptUrls, sourcesUsed } from './core/sourcemaps.mjs';
-import { CATEGORIES, countFrames, readFrames, readProfiles, readTrace } from './core/trace.mjs';
+import { CATEGORIES, countFrames, lateTimeline, modeOf, readFrames, readProfiles, readTrace } from './core/trace.mjs';
 import { dirOf, ensure } from './store.mjs';
 
 const ACT_TIMEOUT = 20_000;
@@ -135,6 +135,15 @@ export async function runBlock({ config, build, served, plan, reps, throttle = 1
 
   async function prepare(page) {
     await applyInject(page, inject, config.root);
+    // Long tasks as the page sees them, so a step can wait for a quiet page before it acts (ADR 0001 D9).
+    await page.evaluateOnNewDocument(() => {
+      window.__fpLong = [];
+      try {
+        new PerformanceObserver((l) => {
+          for (const e of l.getEntries()) window.__fpLong.push(e.startTime + e.duration);
+        }).observe({ type: 'longtask', buffered: true });
+      } catch {}
+    });
     if (!vsync) {
       await page.goto('about:blank');
       vsync = await vsyncOf(page);
@@ -160,7 +169,7 @@ export async function runBlock({ config, build, served, plan, reps, throttle = 1
       const cdp = await page.createCDPSession();
       if (throttle > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: throttle });
       for (const st of s.steps) {
-        const r = await step(page, ctx, st, measure, `${s.name}-${st.name}-${tag}${block}-r${rep ?? 'w'}`);
+        const r = await step(page, ctx, st, measure, `${s.name}-${st.name}-${tag}${block}-r${rep ?? 'w'}`, s);
         out.push({ ...base, step: st.name, ...r });
         // A step that failed leaves the page somewhere the next step didn't plan for.
         if (!r.ok) {
@@ -175,7 +184,25 @@ export async function runBlock({ config, build, served, plan, reps, throttle = 1
     }
   }
 
-  async function step(page, ctx, st, measure, label) {
+  /** Waits until the page has had no long task for `ms` (up to `cap`), so work a setup started (a boot on
+      a timer, an image decoding) isn't billed to the step. Says how long it waited, and whether the page
+      was still busy when the step began. */
+  async function quiet(page, ms = 500, cap = 3000) {
+    const start = Date.now();
+    for (;;) {
+      const s = await page.evaluate((ms) => {
+        const now = performance.now();
+        const last = Math.max(0, ...(window.__fpLong ?? []));
+        return { since: now - last, recent: (window.__fpLong ?? []).filter((t) => now - t < 1000).length, known: Array.isArray(window.__fpLong) };
+      }, ms).catch(() => ({ since: Infinity, recent: 0, known: false }));
+      if (!s.known || s.since >= ms) return { waitedMs: Date.now() - start };
+      if (Date.now() - start >= cap) return { waitedMs: Date.now() - start, busy: s.recent };
+      await sleep(100);
+    }
+  }
+
+  async function step(page, ctx, st, measure, label, s = {}) {
+    const q = st.quiet === false || s.quiet === false ? null : await quiet(page);
     await sleep(st.before ?? 400);
     // A tab in the background draws nothing: its step would count no frames and no work, which reads as a
     // perfect page. It is brought to the front, and if it stays hidden the step fails as such.
@@ -210,7 +237,7 @@ export async function runBlock({ config, build, served, plan, reps, throttle = 1
     if (!measure) return { ok: true, ms };
     const reduced = await reduce(events, page, label);
     dbg('reduced');
-    return { ok: true, ms, ...reduced };
+    return { ok: true, ms, ...reduced, ...(q?.busy ? { notQuiet: { waitedMs: q.waitedMs, longTasks: q.busy } } : {}) };
   }
 
   async function visible(page) {
@@ -233,7 +260,7 @@ export async function runBlock({ config, build, served, plan, reps, throttle = 1
     }
     const frames = readFrames(t);
     const counts = countFrames(frames, vsync.ms);
-    const out = { counts, episode: counts.longestFreezeMs >= config.episodeMs, vsyncMs: +vsync.ms.toFixed(2) };
+    const out = { counts, episode: counts.longestFreezeMs >= config.episodeMs, vsyncMs: +vsync.ms.toFixed(2), mode: modeOf(t), timeline: lateTimeline(t, frames) };
     if (depth !== 'light') {
       out.freezes = findFreezes(t, frames, { vsyncMs: vsync.ms, minMs: 30, placeTrace: places.placeTrace });
       out.work = reduceWork(t, places.placeTrace);

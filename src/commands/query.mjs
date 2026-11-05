@@ -4,6 +4,8 @@
 //   hot         self time by function, per thread
 //   forced      style and layout forced from script, by source line
 //   askers      who asks for frames (requestAnimationFrame) and timers, by source line
+//   late        when the late frames fall after the step's act, by stage, with the page's marks: a stutter
+//               of many slightly late frames, which no freeze names (ADR 0001 D7)
 //   threads     time per thread: main, workers, compositor, raster, GPU, other sites
 //   long-tasks  the longest freezes and journey blocks, with their verdicts
 //   failures    the steps that failed, with their kind and reason
@@ -11,7 +13,7 @@
 import { string, UsageError } from '../cli/args.mjs';
 import { Run } from '../store.mjs';
 
-const WHAT = ['hot', 'forced', 'askers', 'threads', 'long-tasks', 'failures', 'steps'];
+const WHAT = ['late', 'hot', 'forced', 'askers', 'threads', 'long-tasks', 'failures', 'steps'];
 
 export default async function query(ctx) {
   let [id, what] = ctx.args;
@@ -34,7 +36,37 @@ export default async function query(ctx) {
   };
   let evidence;
   let summary;
-  if (what === 'forced' || what === 'askers') {
+  if (what === 'late') {
+    const timed = steps.filter((r) => r.ok && r.timeline);
+    if (!timed.length) throw new UsageError(`${run.id} kept no late-frame timeline${steps.length ? ' (a run from before ADR 0001)' : ''}`, [`frameproof freezes -s ${sc ?? '<scenario>'}`]);
+    const BINS = [[0, 100], [100, 300], [300, 1000], [1000, Infinity]];
+    const byCell = new Map();
+    for (const r of timed) {
+      const key = `${r.scenario} ${r.step}${r.throttle > 1 ? ` @${r.throttle}x` : ''}${r.build && r.build !== 'ref' ? ` ${r.build}` : ''}`;
+      const c = byCell.get(key) ?? { reps: 0, bins: BINS.map(() => ({})), marks: {} };
+      c.reps++;
+      for (const [at, stage] of r.timeline.late) {
+        const i = BINS.findIndex(([a, b]) => at >= a && at < b);
+        // The stage's name without its explanation, to keep the output short.
+        const st = String(stage).replace(/ \(.*\)$/, '');
+        if (i >= 0) c.bins[i][st] = (c.bins[i][st] ?? 0) + 1;
+      }
+      for (const [at, name] of r.timeline.marks) (c.marks[name] ??= []).push(at);
+      byCell.set(key, c);
+    }
+    const label = ([a, b]) => (b === Infinity ? `${a}+ ms` : `${a}-${b} ms`);
+    evidence = [...byCell].map(([cell, c]) => ({
+      cell,
+      late: Object.fromEntries(
+        c.bins
+          .map((bin, i) => [label(BINS[i]), Object.entries(bin).sort((x, y) => y[1] - x[1]).map(([st, n]) => `${st} ${+(n / c.reps).toFixed(1)}`).join(', ')])
+          .filter(([, v]) => v),
+      ),
+      marks: Object.entries(c.marks).slice(0, 8).map(([name, at]) => `${name}@${Math.round(at.reduce((x, y) => x + y, 0) / at.length)}`),
+    }));
+    const worst = evidence[0];
+    summary = `Late frames a repetition, by time after the act and the stage that held them, over ${timed.length} steps${worst ? `; ${worst.cell}: ${Object.entries(worst.late).map(([k, v]) => `${k}: ${v}`).join('; ') || 'none'}` : ''}`;
+  } else if (what === 'forced' || what === 'askers') {
     needWork();
     const sum = {};
     for (const r of withWork) for (const [k, n] of Object.entries(r.work[what])) sum[k] = (sum[k] ?? 0) + n;

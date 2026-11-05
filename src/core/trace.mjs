@@ -281,3 +281,44 @@ export function surfaceKind(sink) {
   if (!m) return 'unknown';
   return Number(m[2]) >= 2 ** 31 ? 'a video or canvas layer' : 'a frame';
 }
+
+const LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
+
+/** Where the page's local subframes ran: the local origins whose frames had a process other than the
+    page's (another local site, out of process) and the ones that shared it. Which local name a page is on
+    can decide this, and with it what the page costs (ADR 0001 D1). */
+export function modeOf(t) {
+  const main = t.docs.get(t.mainFrame)?.url;
+  let page = '';
+  try {
+    page = main ? new URL(main).host : '';
+  } catch {}
+  const apart = new Set();
+  const together = new Set();
+  for (const d of t.docs.values()) {
+    if (!d.parent || !d.url) continue;
+    let host;
+    try {
+      host = new URL(d.url).host;
+    } catch {
+      continue;
+    }
+    if (!LOCAL.test(host)) continue;
+    (d.pid && d.pid !== t.pagePid && !t.ours.has(d.pid) ? apart : together).add(host);
+  }
+  return { page, apart: [...apart].sort(), together: [...together].sort() };
+}
+
+/** Each late frame's time from the step's act, and its stage; with the page's own marks in the step
+    (ADR 0001 D7). Kept small: a stutter is many late frames, and their timing is what tells it apart. */
+export function lateTimeline(t, frames, { max = 240 } = {}) {
+  const act = t.actTs ?? frames[0]?.ts ?? 0;
+  const late = frames.filter((f) => f.bad).slice(0, max).map((f) => [Math.round((f.ts - act) / 1000), f.stage]);
+  const marks = t.events
+    .filter((e) => e.cat?.includes('blink.user_timing') && e.pid === t.pagePid && e.ts >= act && typeof e.name === 'string' && !/^(perf:|fp\|)/.test(e.name))
+    .sort((a, b) => a.ts - b.ts)
+    .map((e) => [Math.round((e.ts - act) / 1000), e.name])
+    .filter((m, i, all) => all.findIndex((x) => x[1] === m[1]) === i)
+    .slice(0, 16);
+  return { late, marks };
+}

@@ -3,7 +3,7 @@
 // takes it from there. A cell is one step at one throttle.
 import { decide, MIN_FOR_CONFIRM, overall } from '../core/verdict.mjs';
 import { blocks, Clock, progress } from '../session.mjs';
-import { cellId, marginFor } from './_shared.mjs';
+import { cellId, marginFor, modeKey } from './_shared.mjs';
 
 /** How much of a cell's repetitions may fail before its verdict is `invalid`. */
 const FAIL_SHARE = 0.25;
@@ -24,6 +24,9 @@ export async function abSession(ctx, { run, base, head, scenarios, throttles, re
   let strata = 0;
   let blockNo = 0;
   const placements = new Set();
+  // What the two builds' pages did: their serving mode, and where each cell's late frames came from.
+  const seen = { a: [], b: [] };
+  let lost = null;
 
   async function collect(ids, stage) {
     if (stage === 'screen' && strata > 0 && !clock.ok()) return null;
@@ -37,9 +40,18 @@ export async function abSession(ctx, { run, base, head, scenarios, throttles, re
         const got = {};
         for (const side of order) {
           const build = side === 'a' ? base : head;
-          const r = await blocks({ config: ctx.config, build, plan, reps, throttle: th, depth: 'light', inject: side === 'a' ? injectA : injectB, run, tag: side, block: blockNo++, flags: ctx.flags, keep: 'none' });
+          let r;
+          try {
+            r = await blocks({ config: ctx.config, build, plan, reps, throttle: th, depth: 'light', inject: side === 'a' ? injectA : injectB, run, tag: side, block: blockNo++, flags: ctx.flags, keep: 'none' });
+          } catch (e) {
+            // The browser went away twice: the session ends on what it measured (ADR 0001 D11).
+            if (!e.browserLost) throw e;
+            lost = e.message;
+            return null;
+          }
           placements.add(r.placement);
           got[side] = r.records;
+          seen[side].push(...r.records.filter((x) => x.ok));
         }
         strata++;
         for (const id of ids) {
@@ -83,6 +95,15 @@ export async function abSession(ctx, { run, base, head, scenarios, throttles, re
     const m = meta.get(id);
     v.throttle = m.throttle;
     v.marginFrom = m.marginFrom;
+    const mine = (side) => seen[side].filter((r) => r.scenario === m.scenario && r.step === m.step && r.throttle === m.throttle);
+    v.lateBy = { base: byStage(mine('a')), head: byStage(mine('b')) };
+    // Two builds whose local frames ran in different processes aren't the same experiment (ADR 0001 D1).
+    const [ka, kb] = [modeKey(mine('a')), modeKey(mine('b'))];
+    if (ka !== kb) {
+      v.verdict = 'invalid';
+      v.reason = `the two builds ran in different modes (local frames in their own process: base ${ka || 'none'}, head ${kb || 'none'}); serve both the same way`;
+      return v;
+    }
     const share = (side) => (m.ran[side] ? m.fails[side].length / m.ran[side] : 0);
     if (share('a') > FAIL_SHARE || share('b') > FAIL_SHARE) {
       const which = share('b') > FAIL_SHARE && share('a') <= FAIL_SHARE ? 'head only' : share('a') > FAIL_SHARE && share('b') <= FAIL_SHARE ? 'base only' : 'both builds';
@@ -92,7 +113,20 @@ export async function abSession(ctx, { run, base, head, scenarios, throttles, re
     } else if (m.fails.a.length + m.fails.b.length) v.failures = { base: m.fails.a.length, head: m.fails.b.length, kinds: [...new Set([...m.fails.a, ...m.fails.b].map((f) => f.kind))] };
     return v;
   });
-  return { results, status: overall(results), placements: [...placements], strata, raw: Object.fromEntries([...meta].map(([id, m]) => [id, m.values])), elapsedMin: +((minutes * 60000 - clock.left()) / 60000).toFixed(1) };
+  return { results, status: lost ? 'partial' : overall(results), lost, records: [...seen.a, ...seen.b], placements: [...placements], strata, raw: Object.fromEntries([...meta].map(([id, m]) => [id, m.values])), elapsedMin: +((minutes * 60000 - clock.left()) / 60000).toFixed(1) };
+}
+
+/** Late frames by the stage that held them, as shares of the repetitions' late frames (ADR 0001 D7). */
+function byStage(records) {
+  const sum = {};
+  let all = 0;
+  for (const r of records) for (const [stage, n] of Object.entries(r.counts?.causes ?? {})) {
+    const k = String(stage).replace(/ \(.*\)$/, '');
+    sum[k] = (sum[k] ?? 0) + n;
+    all += n;
+  }
+  if (!all) return undefined;
+  return Object.entries(sum).sort((x, y) => y[1] - x[1]).slice(0, 2).map(([k, n]) => `${k} ${Math.round((100 * n) / all)}%`).join(', ');
 }
 
 /** A cell, as few tokens as it can be and still be read right. */
@@ -105,6 +139,7 @@ export function compact(v) {
     episodes: v.episodes ? `${v.episodes.base} vs ${v.episodes.head}, p=${v.episodes.p}` : undefined,
     n: v.n ? `${v.n.base}+${v.n.head}` : undefined,
     margin: v.margin,
+    lateBy: v.lateBy?.head ? `${v.lateBy.base ?? '-'} → ${v.lateBy.head}` : undefined,
     reason: v.reason,
   };
 }

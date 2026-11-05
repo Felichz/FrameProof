@@ -74,7 +74,9 @@ export default async function next(ctx) {
   const runs = listRuns(ctx.root);
   const lastFreezes = runs.find((r) => r.command === 'freezes' && r.state === 'done');
   if (!lastFreezes) return say(`ready, and nothing found yet: look for freezes in the scenarios that matter (${goalScenarios.join(', ')}), at the modest machine's throttle, with a journey for what no scenario covers`, `frameproof freezes -s ${['journey', ...goalScenarios].join(',')} --throttle ${goals.throttle}`, [], ['frameproof journal']);
-  const groups = lastFreezes.result?.groups ?? [];
-  if (groups.length) return say(`the last freezes run found ${groups.length} cause(s); the worst comes back in ${groups[0].in}/${groups[0].of} repetitions: ${groups[0].example}. Read its dossier, price a fix if you can, change one thing, then compare`, `frameproof show ${lastFreezes.id}/f1`, [], [`frameproof query ${lastFreezes.id} forced`, 'frameproof journal']);
+  const groups = (lastFreezes.result?.groups ?? []).filter((g) => !g.deepOnly);
+  // Name the cause first (its dossier, then when the late frames fall), and price a fix only once it is
+  // named: price answers "is it worth it", not "what is it" (ADR 0001 D16).
+  if (groups.length) return say(`the last freezes run found ${groups.length} cause(s) that light runs confirm; the worst comes back in ${groups[0].in}/${groups[0].of} repetitions: ${groups[0].example}. Read its dossier and when the late frames fall; once the cause is named, price a fix, change one thing, then compare`, `frameproof show ${lastFreezes.id}/${groups[0].id}`, [], [`frameproof query ${lastFreezes.id} late --scenario ${groups[0].scenario}`, `frameproof price --inject 'css:<the fix>' -s ${groups[0].scenario}`, 'frameproof journal']);
   return say('no freeze found in the last run: hold what is good with budgets, or look harder (more repetitions, a higher throttle, cold profiles)', 'frameproof check', [], [`frameproof freezes -s ${goalScenarios.join(',')} --throttle ${Math.max(4, goals.throttle)} -n 8 --cold`]);
 }

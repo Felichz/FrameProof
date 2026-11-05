@@ -111,3 +111,50 @@ export function readText(file) {
     return null;
   }
 }
+
+/** The serving mode the records saw, as one line, or '' when the page had no local subframes (ADR 0001 D1). */
+export function modeNote(records) {
+  const apart = new Set();
+  const together = new Set();
+  const pages = new Set();
+  for (const r of records) {
+    if (!r?.mode) continue;
+    if (r.mode.page) pages.add(r.mode.page);
+    for (const h of r.mode.apart ?? []) apart.add(h);
+    for (const h of r.mode.together ?? []) together.add(h);
+  }
+  if (!apart.size && !together.size) return '';
+  const page = [...pages].join(', ') || '?';
+  const parts = [];
+  if (apart.size) parts.push(`frames from ${[...apart].join(', ')} ran in their own process`);
+  if (together.size) parts.push(`frames from ${[...together].join(', ')} shared the page's process`);
+  return `mode: page on ${page}; ${parts.join('; ')}`;
+}
+
+/** A records' mode as a key: two builds measured in different modes aren't the same experiment. */
+export const modeKey = (records) => {
+  const apart = new Set();
+  for (const r of records) for (const h of r?.mode?.apart ?? []) apart.add(h.replace(/:\d+$/, ''));
+  return [...apart].sort().join(',');
+};
+
+/** Each cell's base median, by machine and build, so a run can say when its base reads unlike the last
+    one: numbers from separate runs don't compare (ADR 0001 D2). Returns the notes, by cell. */
+export function baseDrift(ctx, { run, build, results }) {
+  const file = join(dirOf(ctx.root), 'cells.json');
+  const all = readJson(file, {});
+  const notes = {};
+  for (const v of results) {
+    const median = v.typical?.base;
+    if (typeof median !== 'number') continue;
+    const key = `${ctx.machine.id}|${build.key}|${v.id}`;
+    const last = all[key];
+    if (last && last.run !== run.id) {
+      const gap = Math.abs(median - last.median);
+      if (gap > (v.margin ?? 2) && gap > 0.25 * Math.max(median, last.median)) notes[v.id] = `the base read ${median} here and ${last.median} in ${last.run}: numbers from separate runs don't compare, only the two builds within one run do`;
+    }
+    all[key] = { median, run: run.id };
+  }
+  writeJson(file, all);
+  return notes;
+}

@@ -87,6 +87,25 @@ export function dossier(t, run, { t0, vsyncMs, placeTrace, profiles, window: spa
     .filter((v, i, all) => all.indexOf(v) === i)
     .slice(0, 6);
 
+  // What began just before the freeze: a frame committing a document, or a mark of the page's. A freeze
+  // that waits on a frame's surface is usually that frame starting, whatever the GPU's numbers say
+  // (ADR 0001 D8).
+  const recent = [];
+  for (const e of t.events) {
+    if (e.ts < a - 500e3 || e.ts > b) continue;
+    if ((e.name === 'FrameCommittedInBrowser' || e.name === 'CommitLoad') && e.args?.data?.parent && e.args.data.url) {
+      let what = e.args.data.url;
+      try {
+        const u = new URL(what);
+        what = `frame ${u.host}${u.pathname}`.replace(/\/$/, '');
+      } catch {}
+      recent.push({ ms: Math.round((a - e.ts) / 1000), what });
+    } else if (e.cat?.includes('blink.user_timing') && e.pid === t.pagePid && e.ts <= a && !NOT_THE_PAGES.test(e.name) && !/^(perf:|fp\|)/.test(e.name)) {
+      recent.push({ ms: Math.round((a - e.ts) / 1000), what: e.name });
+    }
+  }
+  out.started = recent.sort((x, y) => x.ms - y.ms).filter((v, i, all) => all.findIndex((x) => x.what === v.what) === i).slice(0, 3);
+
   out.verdict = verdict(out);
   return out;
 }
@@ -246,8 +265,17 @@ export function verdict(f) {
   if (f.shaders && f.shaders.ms >= window * 0.3) return `page main thread waiting on shaders ${f.shaders.ms} ms: ${f.shaders.where[0]?.replace(/ [\d.]+ ms$/, '')}`;
   if (f.gpuWait && f.gpuWait.ms >= window * 0.3) return `page main thread waiting on the GPU process ${f.gpuWait.ms} ms${f.gpuWait.shaderMs >= f.gpuWait.ms * 0.5 ? ' (linking shaders: ' + Object.keys(f.gpuWait.calls).filter((c) => SHADER_GL.test(c)).join(', ') + ')' : ` (${Object.keys(f.gpuWait.calls).join(', ')})`}${own ? ' at ' + own : ''}`;
   if (f.main.busy >= window * 0.5) return `page main thread busy ${f.main.busy} ms: ${culprit(top)}`;
+  const fresh = f.started?.[0];
+  const waitsOnFrame = f.waitedOnSurface && f.surfaces?.some((x) => x.kind === 'a frame');
+  if (waitsOnFrame && fresh) return `waiting on a frame that started ${Math.max(0, fresh.ms)} ms before (${fresh.what}; ${named})`;
   if (f.waitedOnSurface && other) return `waiting on ${other[0].replace('other-site:', '')}'s frame (${named}; its main thread busy ${other[1]} ms)`;
-  if (f.gpu && f.gpu.busy >= window * 0.5) return `GPU busy ${f.gpu.busy} ms: ${f.gpu.shaders ? `${f.gpu.shaders} shaders compiled, ` : ''}raster ${f.gpu.raster} ms, composite ${f.gpu.composite} ms`;
+  if (f.gpu && f.gpu.busy >= window * 0.5) {
+    const parts = `${f.gpu.shaders ? `${f.gpu.shaders} shaders compiled, ` : ''}raster ${f.gpu.raster} ms, composite ${f.gpu.composite} ms`;
+    const named = f.gpu.raster + f.gpu.composite + (f.gpu.video ?? 0);
+    // Parts that add up to little of the busy time aren't its cause: the rest is said to be unexplained.
+    if (named < f.gpu.busy / 3 && !f.gpu.shaders) return `GPU busy ${f.gpu.busy} ms, ${f.gpu.busy - named} of it in nothing it names (${parts})${fresh ? `; just before, ${fresh.what} started ${fresh.ms} ms earlier` : ''}`;
+    return `GPU busy ${f.gpu.busy} ms: ${parts}`;
+  }
   if (f.waitedOnSurface) return `waiting on ${named}`;
   if (f.main.busy >= window * 0.25) return `page main thread partly busy ${f.main.busy} ms: ${culprit(top)}`;
   return `no work held it on the main thread or the GPU (${Object.keys(f.stages)[0]})`;

@@ -30,6 +30,9 @@ export function ready(config, ref, flags = {}) {
  * Runs blocks on one build and returns their records. `plan` is a list of scenarios. A new profile is
  * warmed first (one unmeasured pass), unless `--cold`.
  */
+/** What a browser that went away looks like from puppeteer. */
+export const LOST = /Connection closed|Target closed|No target with given id|Session closed|Protocol error.*(closed|detached)|browser has disconnected/i;
+
 export async function blocks({ config, build, plan, reps, throttle = 1, depth, inject, run, tag = 'a', block = 0, flags = {}, keep, coverage = false, onStep }) {
   const served = await serveBuild(config, build);
   const mode = browserMode(flags);
@@ -38,10 +41,24 @@ export async function blocks({ config, build, plan, reps, throttle = 1, depth, i
   const warm = !cold && !hasProfile(config, build.profileKey + (mode.headless ? '-headless' : ''));
   try {
     progress(`${tag === 'b' ? 'head' : tag === 'a' ? 'base' : tag} ${build.label}, block ${block + 1}: ${plan.map((s) => s.name).join(', ')} x${reps}${throttle > 1 ? ` at ${throttle}x CPU` : ''}${inject ? `, inject ${inject}` : ''}${warm ? ' (warming a new profile first)' : ''}`);
-    const out = await runBlock({ config, build, served, plan, reps, throttle, depth, inject, profile, warm, show: mode.show, headless: mode.headless, run, tag, block, keep, coverage, onStep: (r) => {
+    const once = () => runBlock({ config, build, served, plan, reps, throttle, depth, inject, profile, warm, show: mode.show, headless: mode.headless, run, tag, block, keep, coverage, onStep: (r) => {
       run?.addStep(r);
       onStep?.(r);
     } });
+    let out;
+    try {
+      out = await once();
+    } catch (e) {
+      if (!LOST.test(e?.message ?? '')) throw e;
+      // A browser that went away costs this block, not the run: once more in a new one (ADR 0001 D11).
+      progress(`the browser went away (${e.message.split('\n')[0]}): block ${block + 1} again, in a new one`);
+      try {
+        out = await once();
+      } catch (again) {
+        if (LOST.test(again?.message ?? '')) throw Object.assign(new Error(`the browser went away twice: ${again.message.split('\n')[0]}`), { browserLost: true });
+        throw again;
+      }
+    }
     return { ...out, mode };
   } finally {
     await served.close();
