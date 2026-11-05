@@ -50,6 +50,11 @@ test('a freeze waiting on a frame that just started says so', () => {
   assert.match(verdict(f), /^waiting on a frame that started 190 ms before \(live:mount:knowgraph/);
 });
 
+test("the page's own root surface and Chrome's marks aren't a frame that started", () => {
+  const f = freeze({ waitedOnSurface: 3, surfaces: [{ kind: 'a frame', sink: 'FrameSinkId(0, 1)', times: 3 }], started: [{ ms: 317, what: 'commitNavigationEnd' }] });
+  assert.doesNotMatch(verdict(f), /a frame that started/);
+});
+
 test('a GPU verdict whose parts explain little says so', () => {
   const f = freeze({ gpu: { busy: 100, raster: 2, composite: 1, shaders: 0 } });
   assert.match(verdict(f), /^GPU busy 100 ms, 97 of it in nothing it names/);

@@ -11,7 +11,8 @@ function count(list) {
   return Object.fromEntries(Object.entries(c).sort((a, b) => b[1] - a[1]));
 }
 
-const NOT_THE_PAGES = /^(navigationStart|fetchStart|requestStart|responseEnd|domLoading|domInteractive|domContentLoaded|domComplete|loadEvent|unloadEvent|redirect|connect|domain|secureConnection|perf:act)/;
+// Chrome's own navigation and paint marks, which land in user timing too: not the page's.
+const NOT_THE_PAGES = /^(navigationStart|fetchStart|requestStart|responseStart|responseEnd|domLoading|domInteractive|domContentLoaded|domComplete|loadEvent|unloadEvent|redirect|connect|domain|secureConnection|commitNavigation|firstPaint|firstContentfulPaint|firstMeaningfulPaint|largestContentfulPaint|perf:act)/;
 
 export function findFreezes(t, frames, { vsyncMs, minMs = 30, placeTrace }) {
   if (!frames.length) return [];
@@ -266,7 +267,8 @@ export function verdict(f) {
   if (f.gpuWait && f.gpuWait.ms >= window * 0.3) return `page main thread waiting on the GPU process ${f.gpuWait.ms} ms${f.gpuWait.shaderMs >= f.gpuWait.ms * 0.5 ? ' (linking shaders: ' + Object.keys(f.gpuWait.calls).filter((c) => SHADER_GL.test(c)).join(', ') + ')' : ` (${Object.keys(f.gpuWait.calls).join(', ')})`}${own ? ' at ' + own : ''}`;
   if (f.main.busy >= window * 0.5) return `page main thread busy ${f.main.busy} ms: ${culprit(top)}`;
   const fresh = f.started?.[0];
-  const waitsOnFrame = f.waitedOnSurface && f.surfaces?.some((x) => x.kind === 'a frame');
+  // A frame other than the page's own root surface (FrameSinkId(0, 1) is the display's root).
+  const waitsOnFrame = f.waitedOnSurface && f.surfaces?.some((x) => x.kind === 'a frame' && !/^FrameSinkId\(0, 1\)$/.test(x.sink));
   if (waitsOnFrame && fresh) return `waiting on a frame that started ${Math.max(0, fresh.ms)} ms before (${fresh.what}; ${named})`;
   if (f.waitedOnSurface && other) return `waiting on ${other[0].replace('other-site:', '')}'s frame (${named}; its main thread busy ${other[1]} ms)`;
   if (f.gpu && f.gpu.busy >= window * 0.5) {
