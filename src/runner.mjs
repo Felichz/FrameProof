@@ -364,7 +364,9 @@ function journeyBlocks(t, frames, placeTrace, vsyncMs) {
     .sort((a, b) => a.at - b.at);
 }
 
+// A key can name a url (url:https://...): a folder name keeps only what a path can hold, on any system.
+const folderOf = (key) => key.replace(/[^A-Za-z0-9._-]+/g, '_');
 export function profileDir(config, key) {
-  return ensure(join(dirOf(config.root), 'profiles', key));
+  return ensure(join(dirOf(config.root), 'profiles', folderOf(key)));
 }
-export const hasProfile = (config, key) => existsSync(join(dirOf(config.root), 'profiles', key, 'Default'));
+export const hasProfile = (config, key) => existsSync(join(dirOf(config.root), 'profiles', folderOf(key), 'Default'));
