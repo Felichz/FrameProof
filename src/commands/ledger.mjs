@@ -11,9 +11,9 @@ import { guard, openRun, scenariosFor } from './_shared.mjs';
 const SHOWN = ['busyMs', 'scriptMs', 'styleMs', 'layoutMs', 'paintMs', 'gcMs', 'styleElements', 'layoutObjects', 'forced', 'rafs', 'timers'];
 
 /** Runs the scenarios with counted work, and returns each step's runs and their least. */
-export async function workRun(ctx, { run, scenarios, ref, n, throttle = 1 }) {
+export async function workRun(ctx, { run, scenarios, ref, n, throttle = 1, coverage = true }) {
   const build = ready(ctx.config, ref, ctx.flags);
-  const out = await blocks({ config: ctx.config, build, plan: scenarios, reps: n, throttle, depth: 'work', run, tag: 'ref', flags: ctx.flags, keep: 'none', coverage: true });
+  const out = await blocks({ config: ctx.config, build, plan: scenarios, reps: n, throttle, depth: 'work', run, tag: 'ref', flags: ctx.flags, keep: 'none', coverage });
   const by = new Map();
   for (const r of out.records) {
     if (r.scenario === 'journey') continue;

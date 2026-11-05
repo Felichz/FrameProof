@@ -100,7 +100,8 @@ function suggest(ctx, out, { base, head, scenarios, ths, cal }) {
     gets. */
 async function countsOf(ctx, { run, scenarios, base, head, throttle }) {
   try {
-    const [a, b] = [await workRun(ctx, { run, scenarios, ref: base, n: 1, throttle }), await workRun(ctx, { run, scenarios, ref: head, n: 1, throttle })];
+    // No coverage: the counts don't need it, and on a large page collecting it timed out.
+    const [a, b] = [await workRun(ctx, { run, scenarios, ref: base, n: 1, throttle, coverage: false }), await workRun(ctx, { run, scenarios, ref: head, n: 1, throttle, coverage: false })];
     const out = [];
     for (const sb of b.steps) {
       const sa = a.steps.find((x) => x.scenario === sb.scenario && x.step === sb.step);

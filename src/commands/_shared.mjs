@@ -117,11 +117,13 @@ export function modeNote(records) {
   const apart = new Set();
   const together = new Set();
   const pages = new Set();
+  // Hosts without their ports: a static server takes a new port each block, and the mode is the same.
+  const host = (h) => String(h).replace(/:\d+$/, '');
   for (const r of records) {
     if (!r?.mode) continue;
-    if (r.mode.page) pages.add(r.mode.page);
-    for (const h of r.mode.apart ?? []) apart.add(h);
-    for (const h of r.mode.together ?? []) together.add(h);
+    if (r.mode.page) pages.add(host(r.mode.page));
+    for (const h of r.mode.apart ?? []) apart.add(host(h));
+    for (const h of r.mode.together ?? []) together.add(host(h));
   }
   if (!apart.size && !together.size) return '';
   const page = [...pages].join(', ') || '?';

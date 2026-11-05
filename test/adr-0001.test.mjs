@@ -24,10 +24,13 @@ test('a local subframe in another process is apart; one in the page\'s process i
 test('the mode note says it, and two modes are two keys', () => {
   const apart = [{ mode: { page: '127.0.0.1:5000', apart: ['localhost:5000'], together: [] } }];
   const together = [{ mode: { page: '[::1]:5000', apart: [], together: ['[::1]:5000'] } }];
-  assert.match(modeNote(apart), /frames from localhost:5000 ran in their own process/);
+  assert.match(modeNote(apart), /frames from localhost ran in their own process/);
   assert.match(modeNote(together), /shared the page's process/);
   assert.equal(modeNote([{ mode: { page: 'x', apart: [], together: [] } }]), '');
   assert.notEqual(modeKey(apart), modeKey(together));
+  // A new port each block is still one mode.
+  const ports = [5000, 5001, 5002].map((p) => ({ mode: { page: `[::1]:${p}`, apart: [], together: [`[::1]:${p}`] } }));
+  assert.equal(modeNote(ports), "mode: page on [::1]; frames from [::1] shared the page's process");
 });
 
 test('the timeline keeps late frames from the act, and the page\'s marks', () => {
