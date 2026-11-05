@@ -46,9 +46,12 @@ kinds:
 
 ### 2. One line for a freeze
 
-- **D5. `freezes` cuts where episodes do.** `--min` defaults to the config's `episodeMs` (100), the same
-  line `compare` counts episodes at. A lower `--min` is still allowed, and said in the summary.
-  *(W7)*
+- **D5. One line within `freezes`, and the other one said.** `--min` stays at 50 ms, and the light check
+  (D6) counts at the same line. When a confirmed freeze is shorter than the config's `episodeMs` (100),
+  the summary says that `compare` counts it in typical late frames, not as an episode. *(W7)*
+  *Revised while implementing:* the first version moved `--min` to 100 ms. The sample app's planted
+  forced layout freezes for 50 to 83 ms at 4x, four frames a visitor sees, and `freezes` would have stopped
+  finding it. Both lines printed side by side, as the Windows review also proposed, keep it.
 - **D6. Every freeze group is checked against light runs.** After its deep repetitions, `freezes` runs the
   same scenarios with light tracing (`--light-n`, twice `-n` by default, `0` to skip) and gives each group
   `light: "a/b"`, the share of light repetitions of that step with an episode. A group no light run
@@ -115,6 +118,4 @@ kinds:
 - Summaries get one line longer when the mode is worth saying, and `freezes` takes longer by its light
   runs (about the time of `-n` deep repetitions). Both buy the two things the reviews found most
   expensive: measuring a mode the project doesn't ship in, and chasing a freeze no visitor gets.
-- `freezes --min` changes its default from 50 to 100 ms. Runs before this ADR aren't comparable with runs
-  after it on that count.
 - Projects that relied on `price` running `1x` and `4x` pass `--throttle 1,4`.

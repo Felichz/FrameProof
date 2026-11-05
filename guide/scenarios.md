@@ -32,7 +32,11 @@ export default {
   that did nothing is told apart from a step that was fast.
 - `ctx.state` is shared between setup and the steps of one repetition.
 - Per step, optional: `settle` (ms traced after done, 1200), `before` (ms of quiet before, 400), `timeout`
-  (for act, 20 s), `doneTimeout`.
+  (for act, 20 s), `doneTimeout`, `quiet` (`false` to skip the wait below).
+- Before each step acts, the page gets up to 3 s to have no long task for 500 ms, so work its setup started
+  (a boot on a timer, an image decoding) isn't billed to the step. A step that began anyway is marked, and
+  `freezes` says how many repetitions did (`busyAtStart`). `quiet: false` on a step or a scenario skips it,
+  for a step meant to act on a busy page.
 - Per scenario, optional: `margin` (a number, or `{ stepName: number }`), the late frames `same` needs.
 
 `frameproof scenario new <name>` writes a template; `frameproof scenario check <name>` runs it once and

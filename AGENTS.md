@@ -38,6 +38,7 @@ For the details of any command, ask the tool, not this page: `npx -y github:Feli
 | `inconclusive` | The data can't tell | "Not known". Never "no difference" |
 | `invalid` | The steps didn't do what they claim | Nothing yet. Read why: it may be a real bug in the app |
 | `not-measurable` | This machine can't measure now | "Unmeasured", and why |
+| `partial` | The browser was lost twice; the cells cover what was measured before | The cells' own verdicts, and that the run was cut |
 
 Counts of work (`ledger`) say where work went, not whether frames improved. Only `compare` judges a change. Work reported as `moved` didn't go away.
 
@@ -45,7 +46,8 @@ Counts of work (`ledger`) say where work went, not whether frames improved. Only
 
 - Don't kill processes you didn't start. If the machine is busy, say so and wait.
 - Don't open visible browser windows. The tool keeps Chrome out of sight by itself (off screen, or against the screen's edge on macOS) and never takes the focus.
-- Don't compare numbers from different machines or different days.
+- Don't compare numbers from different machines or different days, or from two runs: only the two builds within one run compare. A cell whose base reads unlike the last run says so.
+- Check the `mode` line: it says when the page's local frames ran in a process of their own. Measure the mode the project ships in.
 - A change that alters what a visitor sees or when it happens is the person's call: describe it, keep it uncommitted, ask.
 - The tool gives evidence. It doesn't decide trade-offs, and neither does a p-value.
 

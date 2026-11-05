@@ -9,8 +9,10 @@
 | `invalid` | The steps didn't do what they claim | Nothing yet. Read why: it may be a real bug |
 | `not-measurable` | This machine can't measure now | "Unmeasured", and why |
 
-The other statuses: `ok` (the command did its job), `failed` (a budget broke), `error` (a usage mistake;
-`next` says what to type).
+The other statuses: `ok` (the command did its job), `partial` (the browser was lost twice; the result
+covers what was measured before, and says so), `running` (a `wait` ran out of time before the run did),
+`failed` (a budget broke), `error` (a usage mistake, or a run that stopped before it finished; `next` says
+what to type).
 
 ## Reading a cell
 
