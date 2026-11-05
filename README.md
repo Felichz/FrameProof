@@ -35,28 +35,45 @@ frameproof drives a real Chrome through scenarios you describe, reads the frames
 | What exactly froze, and why? | `frameproof freezes`, `frameproof show` | Each freeze with its stage, its cause and its source line, grouped across repetitions |
 | Where does the work go, and did a rule break? | `frameproof ledger`, `frameproof check` | Counted work per scenario, and budgets that fail CI |
 
+On the sample app, the scroll handler reads each card's position after writing to the one before. `freezes` names it:
+
 ```console
-$ frameproof compare --base main --head HEAD --scenario scroll --throttle 1,4 --json
+$ frameproof freezes -s journey,scroll,open-cart --throttle 4 -n 2
 ```
 
 ```json
 {
-  "status": "inconclusive",
-  "scenario": "scroll",
-  "steps": [
-    {
-      "step": "up", "throttle": 4, "verdict": "inconclusive",
-      "effect": { "lateFrames": 0.8, "ci95": [-0.4, 1.9] },
-      "reason": "first run p=0.020 did not survive the confirmation run",
-      "typical": { "base": 1, "head": 1 },
-      "episodes": { "base": "3/40", "head": "6/40", "p": 0.48 }
-    }
-  ],
-  "next": ["frameproof freezes --ref HEAD --scenario scroll --min 100"]
+ "status": "ok",
+ "summary": "4 cause(s) of freezes of 50 ms or more on worktree at 4x CPU; 4 come back in every repetition. ...",
+ "evidence": [
+  {"id":"f1","where":"scroll down","in":"2/2","ms":"50-83","cause":"page main thread busy 67 ms: layout forced 80 of 4342 objects in 10 passes at /src/sticky-header.js:6, from script at /src/sticky-header.js:4"},
+  {"id":"f3","where":"open-cart open","in":"2/2","ms":"117-133","cause":"page main thread busy 133 ms: style forced 2908 elements in 2 passes at /src/cart.js:28 open, from script at /src/cart.js:18 open"},
+  {"journey":"2024 ms during scroll setup (no step measures it)","cause":"page main thread waiting on the GPU process 1746 ms (linking shaders: GetProgramiv)"}
+ ],
+ "next": ["frameproof show f1", "frameproof query <run> forced", "frameproof price --inject 'css:<rules>' -s scroll"]
 }
 ```
 
-*(Illustrative output: the shape is the proposed contract, and the figures echo a real case described in the plan.)*
+With the reads batched into one pass a frame, `compare` judges the change against the last commit:
+
+```console
+$ frameproof compare -s scroll --throttle 4 --note "batching the badge reads and writes removes the forced layout"
+```
+
+```json
+{
+ "status": "better",
+ "summary": "worktree against HEAD (37b6821), 8 strata in 9.9 min. better: scroll/down@4x, scroll/up@4x.",
+ "evidence": [
+  {"cell":"scroll/down@4x","verdict":"better","effect":{"lateFrames":-24,"interval":[-25.2,-22.8]},"typical":{"base":24,"head":0},"episodes":"2/24 vs 0/24, p=0.489","n":"24+24","margin":2,"reason":"confirmed on fresh repetitions (typical frames, p<0.001 after Holm)"},
+  {"cell":"scroll/up@4x","verdict":"better","effect":{"lateFrames":-19,"interval":[-20.2,-17.8]},"typical":{"base":19,"head":1},"episodes":"0/24 vs 0/24, p=1","n":"24+24","margin":2,"reason":"confirmed on fresh repetitions (typical frames, p<0.001 after Holm)"}
+ ]
+}
+```
+
+*(Real runs on a 2020 Intel MacBook, Chrome 156, cut for length. The rare stalls in `scroll/down` went from 2 of 24 to 0 of 24, which on its own is not significant: p = 0.49. The typical frames carry the verdict.)*
+
+To try it: copy `examples/janky-shop` somewhere, run `npx -y github:Felichz/FrameProof next` in it, and follow what it says.
 
 ## What makes it different
 

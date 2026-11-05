@@ -32,8 +32,11 @@ export async function guard(ctx, { frames = true } = {}) {
   if (!chromePath()) return { status: 'not-measurable', summary: 'Chrome is not installed where frameproof looks, and CHROME_PATH is not set', next: ['npx @puppeteer/browsers install chrome@stable', 'then set CHROME_PATH to the path it prints'] };
   const d = display();
   if (frames && !d.ok && !ctx.flags.headless) return { status: 'not-measurable', summary: `frames can't be judged here: ${d.why}. Counted work still can, headless.`, next: ['frameproof ledger -s <scenario> --headless', 'frameproof check --headless'] };
-  if (ctx.flags['ignore-load']) return null;
   const b = await busy();
+  if (ctx.flags['ignore-load']) {
+    if (b.busy) ctx.loadNote = `measured on a busy machine (${Math.round(b.share * 100)}% CPU), with --ignore-load: frame counts are about that load as much as the page`;
+    return null;
+  }
   if (b.busy && !frames) {
     // Counted work moves little with the load (it is what holds budgets on noisy CI runners): it runs, and
     // says it ran on a busy machine.

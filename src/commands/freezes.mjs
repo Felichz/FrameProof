@@ -38,7 +38,7 @@ export default async function freezes(ctx) {
   if (uncovered.length) summary += ` The journey found ${uncovered.length} long task(s) outside every step, where no scenario measures.`;
   if (failed.length) summary += ` ${failed.length} step(s) failed: see evidence.`;
   if (ctx.config.build && maps && maps.scripts && !maps.mapped) summary += ' No script had a source map: names are the built files\'. Turn source maps on in the build for source lines.';
-  if (mode.label) summary += ` (${mode.label})`;
+  for (const note of [mode.label, ctx.loadNote].filter(Boolean)) summary += ` (${note})`;
   run.finish({ status: 'ok', summary, ...result });
   if (failed.length) evidence.push({ failed: failed.slice(0, 3).map((r) => `${r.scenario} ${r.step} rep ${r.rep + 1}: ${r.failure.kind}, ${r.failure.reason}`) });
   const next = groups.length ? [`frameproof show ${groups[0].id}`, `frameproof query ${run.id} forced`, `frameproof price --inject 'css:<rules>' -s ${groups[0].scenario}`] : throttle === 1 ? [`frameproof freezes -s ${scenarios.map((s) => s.name).join(',')} --throttle 4`, `frameproof freezes -s journey,${scenarios.map((s) => s.name).join(',')}`] : [`frameproof ledger -s ${scenarios[0].name}`];

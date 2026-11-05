@@ -36,7 +36,7 @@ export default async function compare(ctx) {
   const same = a.key === b.key;
   const out = await abSession(ctx, { run, base: a, head: b, scenarios, throttles: ths, reps: number(f, 'batch', 4), minutes: number(f, 'minutes', 20), looks: number(f, 'looks', 6) });
 
-  const summary = summarize(out, { base: a.label, head: b.label, same });
+  const summary = summarize(out, { base: a.label, head: b.label, same }) + (ctx.loadNote ? ` (${ctx.loadNote})` : '');
   const cal = readCalibration(ctx);
   const next = suggest(ctx, out, { base, head, scenarios, ths, cal });
   const result = { status: out.status, summary, base: a.label, head: b.label, cells: out.results, placements: out.placements, strata: out.strata, minutes: out.elapsedMin, scenariosChosen: chosen };
