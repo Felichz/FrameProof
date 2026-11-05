@@ -8,7 +8,8 @@ built-in scenarios still run on a static folder.
 export default {
   build: { command: '<the project build command>', out: 'dist', env: {} }, // or null: serve as is
   out: '.',                     // with build: null, the folder to serve
-  serve: 'static',              // or { command: '<start a server on {port}>', url: 'http://localhost:{port}' }
+  serve: 'static',              // or { static: true, host: '::1' }: the same, on another local address
+                                // or { command: '<start a server on {port}>', url: 'http://localhost:{port}' }
                                 // or { url: 'https://staging.example.com' } for a site already up
   path: '/',                    // where scenarios start
   scenarios: './perf/scenarios',

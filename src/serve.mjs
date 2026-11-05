@@ -20,8 +20,10 @@ export function freePort() {
   });
 }
 
-/** A static folder on 127.0.0.1, with ranges (video) and a single-page app's fallback to index.html. */
-export async function serveStatic(dir) {
+/** A static folder on 127.0.0.1 (or `host`), with ranges (video) and a single-page app's fallback to
+    index.html. The host is the site the page is on: a page that loads parts of itself from another
+    local name (localhost against 127.0.0.1) runs them in another process, so it matters which one. */
+export async function serveStatic(dir, host = '127.0.0.1') {
   const root = resolve(dir);
   const fallback = join(root, 'index.html');
   const server = createServer((req, res) => {
@@ -51,8 +53,9 @@ export async function serveStatic(dir) {
     res.writeHead(200, { ...headers, 'content-length': size });
     createReadStream(f).pipe(res);
   });
-  await new Promise((r) => server.listen(0, '127.0.0.1', r));
-  return { base: `http://127.0.0.1:${server.address().port}`, dist: root, close: () => new Promise((r) => server.close(r)) };
+  await new Promise((r) => server.listen(0, host, r));
+  const name = host.includes(':') ? `[${host}]` : host;
+  return { base: `http://${name}:${server.address().port}`, dist: root, close: () => new Promise((r) => server.close(r)) };
 }
 
 /** The project's own server, started in `cwd` for the run: `{port}` in its command and url is filled in. */
@@ -93,7 +96,8 @@ export async function serveCommand({ command, url, env = {}, timeoutMs = 60_000 
 export async function serveBuild(config, build) {
   const s = config.serve ?? 'static';
   if (s === 'static') return serveStatic(build.out);
+  if (s.static) return serveStatic(build.out, s.host);
   if (s.url && !s.command) return { base: s.url.replace(/\/$/, ''), dist: null, close: async () => {}, remote: true };
   if (s.command) return serveCommand(s, build.dir);
-  throw new Error(`serve must be 'static', { command, url } or { url }, got ${JSON.stringify(s)}`);
+  throw new Error(`serve must be 'static', { static: true, host }, { command, url } or { url }, got ${JSON.stringify(s)}`);
 }
