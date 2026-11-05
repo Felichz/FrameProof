@@ -38,14 +38,15 @@ const TOPIC = { next: 'index', guide: 'index', doctor: 'machine', init: 'config'
 let toolId;
 export function tool() {
   if (toolId) return toolId;
-  const dir = dirname(dirname(dirname(new URL(import.meta.url).pathname)));
+  const dir = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
   let version = '?';
   try {
     version = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).version;
   } catch {}
   let commit = '';
   try {
-    const git = (args) => execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    // (cwd, not -C: Git reads a C: path given to -C as a remote host on Windows, as builds.mjs does.)
+    const git = (args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
     commit = git(['rev-parse', '--short', 'HEAD']);
     if (git(['status', '--porcelain', '--', 'src', 'bin', 'guide'])) commit += ', dirty';
   } catch {}
