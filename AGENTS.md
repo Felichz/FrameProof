@@ -48,3 +48,12 @@ Counts of work (`ledger`) say where work went, not whether frames improved. Only
 - Don't compare numbers from different machines or different days.
 - A change that alters what a visitor sees or when it happens is the person's call: describe it, keep it uncommitted, ask.
 - The tool gives evidence. It doesn't decide trade-offs, and neither does a p-value.
+
+## Leaving a review
+
+After using frameproof on a project, leave a review of the tool in this repo: it is how the next version learns what got in the way.
+
+- **Where:** `docs/reviews/`, one file for each stretch of work, named `YYYY-MM-DD-<project>-on-<machine>.md` (for example [`2026-11-05-portfolio-on-mac.md`](docs/reviews/2026-11-05-portfolio-on-mac.md)). If you ran it through `npx`, clone `github.com/Felichz/FrameProof` to write it.
+- **What:** what worked, then what to change, most important first. Each point with the runs behind it: the command, the run id, the numbers it printed. End with a table of the changes judged on the project and their verdicts.
+- **How it's written:** facts and the tool's own numbers, nothing estimated. A problem you fixed in the tool says so, with its commit.
+- **Committing:** on `main`, one commit with the review alone (`docs: a review of frameproof on <project>, on <machine>`). The push is the repo owner's: leave the commit and say it's there.
