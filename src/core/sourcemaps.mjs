@@ -1,19 +1,83 @@
 // Real names. Every position in every output goes through here, so an agent never reads a minified one.
 // `prepare` finds each script's map before a trace is read (next to the build's file, inline, or over http
 // for a server); after that, lookups are synchronous.
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import sourceMap from 'source-map-js';
 
-const clean = (source) =>
-  source
+// From the first project folder in the path on: `src/components/A.astro` stays whole (an earlier rule cut
+// it to `components/A.astro`, while `src/scripts/x.ts` kept its `src/`).
+const ROOTS = /(^|\/)(src|app|pages|lib|components|node_modules)\//;
+const clean = (source) => {
+  const s = source
     .replace(/^webpack:\/\/[^/]*\//, '')
     .replace(/^\/?@fs\//, '')
     .replace(/\?.*$/, '')
-    .replace(/^(\.\.?\/)+/, '')
-    .replace(/^.*?\/(src\/|app\/|pages\/|lib\/|components\/|node_modules\/)/, '$1');
+    .replace(/^(\.\.?\/)+/, '');
+  const m = ROOTS.exec(s);
+  return m ? s.slice(m.index + m[1].length) : s;
+};
 
 const MAP_COMMENT = /\/[/*][#@]\s*sourceMappingURL=([^\s*]+)/g;
+
+// A built file by its name, wherever it landed in the build (Astro writes an inline script's map comment
+// relative to the page, and puts the map in _astro/).
+const builtFiles = new Map();
+function findBuilt(dist, name) {
+  if (!builtFiles.has(dist)) {
+    const all = new Map();
+    const walk = (dir, depth) => {
+      if (depth > 4) return;
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        if (e.isDirectory()) walk(join(dir, e.name), depth + 1);
+        else if (e.name.endsWith('.map') && !all.has(e.name)) all.set(e.name, join(dir, e.name));
+      }
+    };
+    try {
+      walk(dist, 0);
+    } catch {}
+    builtFiles.set(dist, all);
+  }
+  return builtFiles.get(dist).get(name) ?? null;
+}
+
+/** A page's inline scripts, each with the position its body starts at in the document (0-based) and its
+    own map: the page's url alone would name them all by one line, and the last map comment would win. */
+function inlineMaps(html, local, dist) {
+  const out = [];
+  const starts = [0];
+  for (let i = html.indexOf('\n'); i >= 0; i = html.indexOf('\n', i + 1)) starts.push(i + 1);
+  const at = (offset) => {
+    let lo = 0;
+    let hi = starts.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (starts[mid] <= offset) lo = mid;
+      else hi = mid - 1;
+    }
+    return { line: lo, col: offset - starts[lo] };
+  };
+  for (const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
+    if (/\bsrc\s*=/.test(m[1]) || !m[2].trim()) continue;
+    const comment = [...m[2].matchAll(MAP_COMMENT)].at(-1)?.[1];
+    if (!comment) continue;
+    let map = null;
+    try {
+      if (comment.startsWith('data:')) {
+        const [, body] = comment.split(',', 2);
+        map = JSON.parse(comment.includes(';base64') ? Buffer.from(body, 'base64').toString() : decodeURIComponent(body));
+      } else {
+        const beside = join(dirname(local), comment);
+        const file = existsSync(beside) ? beside : dist ? findBuilt(dist, comment.split('/').at(-1)) : null;
+        if (file) map = JSON.parse(readFileSync(file, 'utf8'));
+      }
+    } catch {}
+    if (!map) continue;
+    const bodyAt = m.index + m[0].indexOf('>') + 1;
+    out.push({ ...at(bodyAt), end: at(bodyAt + m[2].length), map });
+  }
+  return out.length ? { inline: out } : null;
+}
 
 async function loadMap(url, dist) {
   let pathname;
@@ -22,8 +86,10 @@ async function loadMap(url, dist) {
   } catch {
     return null;
   }
-  const local = dist ? join(dist, pathname) : null;
+  let local = dist ? join(dist, pathname) : null;
+  if (local && existsSync(local) && statSync(local).isDirectory()) local = join(local, 'index.html');
   let text = null;
+  if (local && existsSync(local) && /\.html?$/.test(local)) return inlineMaps(readFileSync(local, 'utf8'), local, dist);
   if (local && existsSync(local)) {
     const beside = `${local}.map`;
     if (existsSync(beside)) return JSON.parse(readFileSync(beside, 'utf8'));
@@ -71,7 +137,17 @@ export function placer({ dist, base = '' } = {}) {
   const place = (url, line, col, name) => {
     if (!url) return { file: '(native)', where: name || '(native)', mapped: false };
     if (url.startsWith('pptr:')) return { file: '(frameproof)', where: '(frameproof)', mapped: false, tool: true };
-    const c = line >= 0 ? consumers.get(url) : null;
+    let c = line >= 0 ? consumers.get(url) : null;
+    // A page's inline script: its own map, at the position inside the script.
+    if (c?.inline) {
+      const seg = c.inline.find((x) => (line > x.line || (line === x.line && col >= x.col)) && (line < x.end.line || (line === x.end.line && col <= x.end.col)));
+      if (seg) {
+        const genLine = line - seg.line;
+        col = genLine === 0 ? col - seg.col : col;
+        line = genLine;
+      }
+      c = seg?.consumer ?? null;
+    }
     if (c) {
       const o = c.originalPositionFor({ line: line + 1, column: col ?? 0 });
       if (o.source) {
@@ -93,14 +169,21 @@ export function placer({ dist, base = '' } = {}) {
           consumers.set(u, null);
           try {
             const map = await loadMap(u, dist);
-            if (map) consumers.set(u, new sourceMap.SourceMapConsumer(map));
+            if (map?.inline) {
+              for (const seg of map.inline) seg.consumer = new sourceMap.SourceMapConsumer(seg.map);
+              consumers.set(u, map);
+            } else if (map) consumers.set(u, new sourceMap.SourceMapConsumer(map));
           } catch {}
         }),
       );
     },
     /** How many scripts of the page have maps: a build without them names no source lines. */
     coverage: () => ({ scripts: consumers.size, mapped: [...consumers.values()].filter(Boolean).length }),
-    consumer: (url) => consumers.get(url) ?? null,
+    // (A page's inline scripts have one map each: there is no single consumer for the page.)
+    consumer: (url) => {
+      const c = consumers.get(url) ?? null;
+      return c?.inline ? null : c;
+    },
   };
 }
 

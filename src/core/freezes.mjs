@@ -140,10 +140,13 @@ function breakDown(t, task, main, t0, placeTrace) {
       const bd = e.args?.beginData ?? {};
       const src = d.stackTrace?.[0] ?? bd.stackTrace?.[0] ?? (d.url ? d : null);
       let where = own(src?.url) ? placeTrace(src).where : null;
-      // A timer, a frame callback or an event has no location of its own: the first of the page's
-      // functions under it does.
+      // A timer, a frame callback or an event has no location of its own: the heaviest of the page's
+      // functions under it does. (The first one is often a cheap listener that happens to run before the
+      // one doing the work, and named a 440 ms click after it.)
       if (!where && k === 'script') {
-        const fn = inner.find((x) => x.ts >= e.ts && x.ts + x.dur <= e.ts + e.dur && (own(x.args?.data?.url) || (!x.args?.data?.url && x.args?.data?.functionName)));
+        const fn = inner
+          .filter((x) => x.ts >= e.ts && x.ts + x.dur <= e.ts + e.dur && (own(x.args?.data?.url) || (!x.args?.data?.url && x.args?.data?.functionName)))
+          .reduce((best, x) => (!best || x.dur > best.dur ? x : best), null);
         const fd = fn?.args?.data;
         where = fd?.url ? placeTrace(fd).where : fd?.functionName || null;
       }
