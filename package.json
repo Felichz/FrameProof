@@ -2,6 +2,8 @@
   "name": "frameproof",
   "version": "0.1.0",
   "description": "Frame-level performance evidence for web apps, built to be used by coding agents.",
+  "license": "MIT",
+  "author": "Felix Andersson <andersson.fx@gmail.com>",
   "type": "module",
   "bin": {
     "frameproof": "bin/frameproof.mjs"
@@ -11,7 +13,8 @@
     "src",
     "guide",
     "AGENTS.md",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=20.19"

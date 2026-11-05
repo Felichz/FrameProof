@@ -101,4 +101,4 @@ Chromium only, because the data comes from Chrome's compositor trace. Desktop fi
 
 ## License
 
-Not chosen yet.
+[MIT](LICENSE).
