@@ -8,7 +8,7 @@
 // and how to get it (`--full`, or a handle for `show`).
 
 export const VERDICTS = ['better', 'worse', 'same', 'inconclusive', 'invalid', 'not-measurable'];
-export const STATUSES = [...VERDICTS, 'ok', 'failed', 'error'];
+export const STATUSES = [...VERDICTS, 'ok', 'running', 'partial', 'failed', 'error'];
 
 /** 0 a verdict was reached (or the command did its job), 1 a budget or a regression failed (or the steps
     didn't do what they claim), 2 not measurable, 3 usage. */

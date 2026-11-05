@@ -6,7 +6,12 @@ import { listRuns, Run } from '../store.mjs';
 const SECTIONS = ['main', 'js', 'threads', 'gpu', 'surfaces', 'invalidations', 'marks', 'stages', 'shaders'];
 
 export default async function show(ctx) {
-  const [handle, section] = ctx.args;
+  let [handle, section, third] = ctx.args;
+  // `show <run> f4 [section]` is `show <run>/f4 [section]`.
+  if (section && /^f\d+$/.test(section) && !/[/:]f\d+$/.test(handle)) {
+    handle = `${handle}/${section}`;
+    section = third;
+  } else if (third) throw new UsageError(`show takes a freeze and a section; "${third}" would be ignored`, ['frameproof show <run>/<fN> [section]']);
   if (!handle) throw new UsageError('show what? A freeze (f1, or <run>/f1) or a run id', ['frameproof show f1', 'frameproof journal']);
   const m = /^(?:(.+?)[/:])?(f\d+)$/.exec(handle);
   if (!m) {
@@ -53,5 +58,12 @@ function runView(run, ctx) {
   if (r?.groups) evidence.push(...r.groups.map((g) => ({ id: g.id, where: `${g.scenario} ${g.step}`, in: `${g.in}/${g.of}`, ms: `${g.minMs}-${g.maxMs}`, cause: g.example })));
   if (r?.steps && !r.cells) evidence.push(...r.steps);
   const status = r?.status && r.status !== 'ok' ? r.status : 'ok';
-  return { status: m.state === 'running' ? 'ok' : status, summary: m.state === 'running' ? `${run.id} is still running: ${steps.length} steps measured so far` : (r?.summary ?? `${run.id}: ${m.command}`), run: run.id, machine: m.machine?.id ?? ctx.machine.id, evidence, next: m.state === 'running' ? [`frameproof wait ${run.id}`] : [`frameproof report ${run.id}`] };
+  const state = run.state();
+  if (state === 'stopped') return { status: 'error', summary: `${run.id} stopped before it finished (its process is gone), after ${steps.length} steps; the last: ${lastStep(steps)}`, run: run.id, machine: m.machine?.id ?? ctx.machine.id, evidence, next: [`frameproof ${m.command} ${(m.argv ?? []).filter((a) => a !== '--background').join(' ')}`.trim()] };
+  return { status: state === 'running' ? 'running' : status, summary: state === 'running' ? `${run.id} is still running: ${steps.length} steps measured so far` : (r?.summary ?? `${run.id}: ${m.command}`), run: run.id, machine: m.machine?.id ?? ctx.machine.id, evidence, next: state === 'running' ? [`frameproof wait ${run.id}`] : [`frameproof report ${run.id}`] };
 }
+
+export const lastStep = (steps) => {
+  const r = steps.at(-1);
+  return r ? `${r.scenario} ${r.step} rep ${(r.rep ?? 0) + 1}${r.ok ? '' : ` (failed: ${r.failure?.kind})`}` : 'none';
+};

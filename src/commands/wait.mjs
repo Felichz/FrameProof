@@ -3,16 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { number, UsageError } from '../cli/args.mjs';
 import { sleep } from '../browser.mjs';
-import { Run } from '../store.mjs';
-
-const alive = (pid) => {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-};
+import { alive, Run } from '../store.mjs';
 
 export default async function wait(ctx) {
   const run = Run.open(ctx.root, ctx.args[0]);
@@ -31,7 +22,8 @@ export default async function wait(ctx) {
       if (existsSync(out) && readFileSync(out, 'utf8').trim()) return { ...JSON.parse(readFileSync(out, 'utf8')), run: run.id };
       return { status: 'error', summary: `${run.id} stopped before it finished`, run: run.id, evidence: [{ lastProgress: log }], next: [`frameproof show ${run.id}`] };
     }
-    if (Date.now() > end) return { status: 'ok', summary: `${run.id} is still running: ${run.steps().length} steps so far`, run: run.id, next: [`frameproof wait ${run.id}`] };
+    // Not a result: a run still going says so in its status, never `ok`.
+    if (Date.now() > end) return { status: 'running', summary: `${run.id} is still running after ${number(ctx.flags, 'minutes', 60)} min of waiting: ${run.steps().length} steps so far`, run: run.id, next: [`frameproof wait ${run.id}`] };
     await sleep(2000);
   }
 }

@@ -44,7 +44,9 @@ export class Run {
   }
 
   static create(root, meta, id = newRunId()) {
-    const run = new Run(root, id, { id, started: new Date().toISOString(), state: 'running', ...meta });
+    // The process that measures: a background run's child replaces it. A run whose process is gone and
+    // that never finished reads as stopped, never as running forever.
+    const run = new Run(root, id, { id, started: new Date().toISOString(), state: 'running', pid: process.pid, ...meta });
     run.save();
     writeFileSync(join(dirOf(root), 'latest'), id);
     return run;
@@ -60,6 +62,13 @@ export class Run {
   save(patch = {}) {
     Object.assign(this.meta, patch);
     writeJson(this.file, this.meta);
+  }
+
+  /** 'running', 'done', or 'stopped' (still marked running, and its process is gone). */
+  state() {
+    const m = new Run(this.root, this.id).meta;
+    if (m.state !== 'running') return m.state ?? 'done';
+    return m.pid && !alive(m.pid) ? 'stopped' : 'running';
   }
 
   finish(result) {
@@ -85,6 +94,16 @@ export class Run {
 
   readTrace(rel) {
     return JSON.parse(gunzipSync(readFileSync(join(this.dir, rel))).toString());
+  }
+}
+
+export function alive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    // EPERM: it exists, under another user.
+    return e.code === 'EPERM';
   }
 }
 

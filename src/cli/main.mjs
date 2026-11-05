@@ -1,7 +1,7 @@
 // The entry: parse, find the project, run one command, print its envelope, return the exit code.
-import { spawn } from 'node:child_process';
-import { openSync } from 'node:fs';
-import { join } from 'node:path';
+import { execFileSync, spawn } from 'node:child_process';
+import { openSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findRoot, loadConfig } from '../config.mjs';
 import { fingerprint } from '../machine.mjs';
@@ -28,6 +28,30 @@ const COMMANDS = {
   report: () => import('../commands/report.mjs'),
   wait: () => import('../commands/wait.mjs'),
 };
+/** How many positional arguments each command takes: one more is a mistake, said as one (an argument that
+    passed quietly sent an agent the wrong way for hours: `show <run> f4` printed the run, not f4). */
+const ARITY = { next: 0, guide: 1, doctor: 0, init: 0, scenario: 2, calibrate: 0, compare: 0, price: 0, freezes: 0, show: 3, query: 2, ledger: 0, check: 0, affected: 0, journal: 0, report: 1, wait: 1 };
+/** The guide topic that documents each command, for `<command> --help`. */
+const TOPIC = { next: 'index', guide: 'index', doctor: 'machine', init: 'config', scenario: 'scenarios', calibrate: 'machine', compare: 'compare', price: 'compare', freezes: 'freezes', show: 'freezes', query: 'freezes', ledger: 'budgets', check: 'budgets', affected: 'compare', journal: 'goals', report: 'verdicts', wait: 'index' };
+
+/** Which frameproof answered: the package's version, and its commit when it runs from a clone. */
+let toolId;
+export function tool() {
+  if (toolId) return toolId;
+  const dir = dirname(dirname(dirname(new URL(import.meta.url).pathname)));
+  let version = '?';
+  try {
+    version = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).version;
+  } catch {}
+  let commit = '';
+  try {
+    const git = (args) => execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    commit = git(['rev-parse', '--short', 'HEAD']);
+    if (git(['status', '--porcelain', '--', 'src', 'bin', 'guide'])) commit += ', dirty';
+  } catch {}
+  return (toolId = `frameproof ${version}${commit ? ` (${commit})` : ''}`);
+}
+
 /** The commands that measure, and so may run for minutes: they take --background. */
 const LONG = new Set(['calibrate', 'compare', 'price', 'freezes', 'ledger', 'check', 'scenario']);
 
@@ -71,6 +95,15 @@ export async function main(argv) {
   }
   const load = COMMANDS[name];
   if (!load) return print(envelope({ status: 'error', summary: `no command "${name}"`, evidence: [{ commands: Object.keys(COMMANDS) }], next: ['frameproof help'] }), opts);
+  if (flags.help) {
+    const guide = await (await COMMANDS.guide()).default({ args: [TOPIC[name] ?? 'index'], flags: {} });
+    return print(envelope({ ...guide, summary: `${name}: ${guide.summary}`, next: [`frameproof guide ${TOPIC[name] ?? 'index'}`], tool: tool() }), { ...opts, full: true });
+  }
+  if (rest.length > (ARITY[name] ?? Infinity)) {
+    const extra = rest.slice(ARITY[name]);
+    const hint = name === 'show' ? ['frameproof show <run>/<fN> [section]', 'frameproof show <run>'] : [`frameproof ${name} --help`];
+    return print(envelope({ status: 'error', summary: `${name} takes ${ARITY[name] || 'no'} argument${ARITY[name] === 1 ? '' : 's'}; ${extra.map((x) => `"${x}"`).join(', ')} would be ignored, so nothing ran`, next: hint, tool: tool() }), opts);
+  }
 
   const root = findRoot(flags.root ?? process.cwd());
   try {
@@ -89,12 +122,13 @@ export async function main(argv) {
     };
     const env = await mod.default(ctx);
     if (env.machine === undefined || env.machine === null) env.machine = ctx.machine.id;
+    env.tool ??= tool();
     const { rest: restCmd, full: whole, ...body } = env;
     return print(envelope(body), { ...opts, rest: restCmd, full: opts.full || whole === true });
   } catch (e) {
-    if (e instanceof UsageError) return print(envelope({ status: 'error', summary: e.message, next: e.next.length ? e.next : [`frameproof guide ${name}`] }), opts);
+    if (e instanceof UsageError) return print(envelope({ status: 'error', summary: e.message, next: e.next.length ? e.next : [`frameproof guide ${TOPIC[name] ?? 'index'}`], tool: tool() }), opts);
     if (process.env.FRAMEPROOF_DEBUG) process.stderr.write(`${e.stack}\n`);
-    return print(envelope({ status: 'error', summary: `${name} failed: ${e.message.split('\n')[0]}`, evidence: e.message.includes('\n') ? [{ detail: e.message.split('\n').slice(1, 14).join('\n') }] : [], next: ['frameproof doctor'] }), opts);
+    return print(envelope({ status: 'error', tool: tool(), summary: `${name} failed: ${e.message.split('\n')[0]}`, evidence: e.message.includes('\n') ? [{ detail: e.message.split('\n').slice(1, 14).join('\n') }] : [], next: ['frameproof doctor'] }), opts);
   }
 }
 
