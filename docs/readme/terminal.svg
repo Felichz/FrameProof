@@ -1,22 +1,34 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="384" viewBox="0 0 1280 384" role="img" aria-labelledby="t">
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="392" viewBox="0 0 1280 392" role="img" aria-labelledby="t">
 <title id="t">A terminal: next says the one thing to do now, with its exact command</title>
 <style>
-svg { --card:#f6f8fa; --card2:#ffffff; --ink:#1f2328; --muted:#59636e; --faint:#818b98; --line:#d1d9e0;
+svg { --bg:#ffffff; --card:#f6f8fa; --card2:#ffffff; --ink:#1f2328; --muted:#59636e; --faint:#818b98; --line:#d1d9e0; --line2:#e8ecf0;
   --good:#1a7f37; --goodsoft:#dafbe1; --bad:#cf222e; --badsoft:#ffebe9; --accent:#8250df; --accentsoft:#fbefff;
-  --warn:#9a6700; --warnsoft:#fff8c5; --blue:#0969da; --bluesoft:#ddf4ff; }
-@media (prefers-color-scheme: dark) { svg { --card:#151b23; --card2:#0d1117; --ink:#f0f6fc; --muted:#9198a1; --faint:#656c76;
-  --line:#3d444d; --good:#3fb950; --goodsoft:#12261e; --bad:#f85149; --badsoft:#2d1418; --accent:#ab7df8; --accentsoft:#231631;
-  --warn:#d29922; --warnsoft:#272115; --blue:#4493f8; --bluesoft:#121d2f; } }
+  --warn:#9a6700; --warnsoft:#fff8c5; --blue:#0969da; --bluesoft:#ddf4ff; --shadow: rgba(31,35,40,0.08); }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --card:#151b23; --card2:#0d1117; --ink:#f0f6fc; --muted:#9198a1; --faint:#656c76;
+  --line:#3d444d; --line2:#262c36; --good:#3fb950; --goodsoft:#12261e; --bad:#f85149; --badsoft:#2d1418; --accent:#ab7df8; --accentsoft:#231631;
+  --warn:#d29922; --warnsoft:#272115; --blue:#4493f8; --bluesoft:#121d2f; --shadow: rgba(0,0,0,0.4); } }
 .card { fill: var(--card); stroke: var(--line); }
 .card2 { fill: var(--card2); stroke: var(--line); }
 .ink { fill: var(--ink); } .muted { fill: var(--muted); } .faint { fill: var(--faint); }
 .good { fill: var(--good); } .bad { fill: var(--bad); } .accent { fill: var(--accent); } .warn { fill: var(--warn); } .blue { fill: var(--blue); }
-.goodsoft { fill: var(--goodsoft); } .ontime { fill: var(--good); opacity: 0.22; } .badsoft { fill: var(--badsoft); } .accentsoft { fill: var(--accentsoft); } .warnsoft { fill: var(--warnsoft); } .bluesoft { fill: var(--bluesoft); }
-.line { stroke: var(--line); } .sline { stroke: var(--muted); } .sgood { stroke: var(--good); } .sbad { stroke: var(--bad); } .saccent { stroke: var(--accent); } .swarn { stroke: var(--warn); }
+.goodsoft { fill: var(--goodsoft); } .badsoft { fill: var(--badsoft); } .accentsoft { fill: var(--accentsoft); } .warnsoft { fill: var(--warnsoft); } .bluesoft { fill: var(--bluesoft); }
+.ontime { fill: var(--good); opacity: 0.24; }
+.line { stroke: var(--line); } .line2 { stroke: var(--line2); } .sline { stroke: var(--muted); } .sfaint { stroke: var(--faint); }
+.sgood { stroke: var(--good); } .sbad { stroke: var(--bad); } .saccent { stroke: var(--accent); } .swarn { stroke: var(--warn); } .sblue { stroke: var(--blue); } .sink { stroke: var(--ink); }
 .sans { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif; } .mono { font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace; }
+.lift { filter: drop-shadow(0 1px 2px var(--shadow)) drop-shadow(0 6px 16px var(--shadow)); }
+.play { animation: sweep 5.5s cubic-bezier(.45,.05,.55,.95) infinite; }
+@keyframes sweep { 0% { transform: translateX(0); opacity: 0; } 6% { opacity: 1; } 88% { opacity: 1; } 100% { transform: translateX(var(--run)); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .play { animation: none; opacity: 0; } }
 </style>
-<rect x="0.5" y="0.5" width="1279" height="383" rx="18" class="card2"/>
-<path d="M 0.5 18.5 a 18 18 0 0 1 18 -18 h 1243 a 18 18 0 0 1 18 18 v 30 h -1279 z" class="card"/>
-<circle cx="30" cy="25" r="7" fill="#ff5f57"/><circle cx="54" cy="25" r="7" fill="#febc2e"/><circle cx="78" cy="25" r="7" fill="#28c840"/>
-<text x="640" y="30" xml:space="preserve" class="muted sans" font-size="13" font-weight="400" text-anchor="middle">your project</text><text x="40" y="92" xml:space="preserve" class="good mono" font-size="17" font-weight="700" text-anchor="start">$ </text><text x="64" y="92" xml:space="preserve" class="ink mono" font-size="17" font-weight="600" text-anchor="start">npx -y github:Felichz/FrameProof next</text><text x="40" y="120" xml:space="preserve" class="muted mono" font-size="16" font-weight="400" text-anchor="start">{</text><text x="40" y="148" xml:space="preserve" class="muted mono" font-size="16" font-weight="400" text-anchor="start"> "status": "ok",</text><text x="40" y="176" xml:space="preserve" class="muted mono" font-size="16" font-weight="400" text-anchor="start"> "summary": "this machine isn't calibrated for open-cart, load: find its</text><text x="40" y="204" xml:space="preserve" class="muted mono" font-size="16" font-weight="400" text-anchor="start">   noise floor and what it can see, once (about 15 minutes; --background</text><text x="40" y="232" xml:space="preserve" class="muted mono" font-size="16" font-weight="400" text-anchor="start">   to keep working)",</text><text x="40" y="260" xml:space="preserve" class="muted mono" font-size="16" font-weight="400" text-anchor="start"> "machine": "darwin-i5-1038ng7-8c-chrome156-95adeb",</text><rect x="34" y="268" width="1212" height="28" rx="6" class="bluesoft"/><text x="40" y="288" xml:space="preserve" class="blue mono" font-size="16" font-weight="600" text-anchor="start"> "next": ["frameproof calibrate -s open-cart,load --throttle 1,4 --background"]</text><text x="40" y="316" xml:space="preserve" class="muted mono" font-size="16" font-weight="400" text-anchor="start">}</text><text x="40" y="362" xml:space="preserve" class="faint sans" font-size="14" font-weight="400" text-anchor="start">`next` reads the project and the machine and says the one thing to do now, with its exact command.</text>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="sfaint"/></marker>
+<marker id="arrowgood" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sgood"/></marker>
+<pattern id="dots" width="18" height="18" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" class="faint" opacity="0.28"/></pattern>
+</defs>
+<g class="lift"><rect x="0.5" y="0.5" width="1279" height="391" rx="18" class="card2"/></g>
+<path d="M 0.5 18.5 a 18 18 0 0 1 18 -18 h 1243 a 18 18 0 0 1 18 18 v 32 h -1279 z" class="card"/>
+<line x1="0.5" x2="1279.5" y1="50.5" y2="50.5" class="line"/>
+<circle cx="30" cy="25.5" r="6.5" fill="#ff5f57"/><circle cx="52" cy="25.5" r="6.5" fill="#febc2e"/><circle cx="74" cy="25.5" r="6.5" fill="#28c840"/>
+<text x="640" y="31" xml:space="preserve" class="muted sans" font-size="13" font-weight="400" text-anchor="middle">your project — zsh</text><text x="40" y="96" xml:space="preserve" class="good mono" font-size="17" font-weight="700" text-anchor="start">$ </text><text x="62" y="96" xml:space="preserve" class="ink mono" font-size="17" font-weight="600" text-anchor="start">npx -y github:Felichz/FrameProof next</text><text x="40" y="124" xml:space="preserve" class="muted mono" font-size="16" font-weight="400" text-anchor="start">{</text><text x="40" y="152" xml:space="preserve" class="muted mono" font-size="16" font-weight="400" text-anchor="start"> "status": "ok",</text><text x="40" y="180" xml:space="preserve" class="muted mono" font-size="16" font-weight="400" text-anchor="start"> "summary": "this machine isn't calibrated for open-cart, load: find its</text><text x="40" y="208" xml:space="preserve" class="muted mono" font-size="16" font-weight="400" text-anchor="start">   noise floor and what it can see, once (about 15 minutes; --background</text><text x="40" y="236" xml:space="preserve" class="muted mono" font-size="16" font-weight="400" text-anchor="start">   to keep working)",</text><text x="40" y="264" xml:space="preserve" class="muted mono" font-size="16" font-weight="400" text-anchor="start"> "machine": "darwin-i5-1038ng7-8c-chrome156-95adeb",</text><rect x="32" y="272" width="1216" height="29" rx="7" class="bluesoft"/><rect x="32" y="272" width="4" height="29" rx="2" class="blue"/><text x="40" y="292" xml:space="preserve" class="blue mono" font-size="16" font-weight="650" text-anchor="start"> "next": ["frameproof calibrate -s open-cart,load --throttle 1,4 --background"]</text><text x="40" y="320" xml:space="preserve" class="muted mono" font-size="16" font-weight="400" text-anchor="start">}</text><text x="40" y="368" xml:space="preserve" class="faint sans" font-size="14" font-weight="400" text-anchor="start">next reads the project and the machine, and answers with the one thing to do now and its exact command.</text>
 </svg>

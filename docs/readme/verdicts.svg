@@ -1,38 +1,54 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="330" viewBox="0 0 1280 330" role="img" aria-labelledby="t">
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-labelledby="t">
 <title id="t">Six verdicts: better, worse, same, inconclusive, invalid, not-measurable</title>
 <style>
-svg { --card:#f6f8fa; --card2:#ffffff; --ink:#1f2328; --muted:#59636e; --faint:#818b98; --line:#d1d9e0;
+svg { --bg:#ffffff; --card:#f6f8fa; --card2:#ffffff; --ink:#1f2328; --muted:#59636e; --faint:#818b98; --line:#d1d9e0; --line2:#e8ecf0;
   --good:#1a7f37; --goodsoft:#dafbe1; --bad:#cf222e; --badsoft:#ffebe9; --accent:#8250df; --accentsoft:#fbefff;
-  --warn:#9a6700; --warnsoft:#fff8c5; --blue:#0969da; --bluesoft:#ddf4ff; }
-@media (prefers-color-scheme: dark) { svg { --card:#151b23; --card2:#0d1117; --ink:#f0f6fc; --muted:#9198a1; --faint:#656c76;
-  --line:#3d444d; --good:#3fb950; --goodsoft:#12261e; --bad:#f85149; --badsoft:#2d1418; --accent:#ab7df8; --accentsoft:#231631;
-  --warn:#d29922; --warnsoft:#272115; --blue:#4493f8; --bluesoft:#121d2f; } }
+  --warn:#9a6700; --warnsoft:#fff8c5; --blue:#0969da; --bluesoft:#ddf4ff; --shadow: rgba(31,35,40,0.08); }
+@media (prefers-color-scheme: dark) { svg { --bg:#0d1117; --card:#151b23; --card2:#0d1117; --ink:#f0f6fc; --muted:#9198a1; --faint:#656c76;
+  --line:#3d444d; --line2:#262c36; --good:#3fb950; --goodsoft:#12261e; --bad:#f85149; --badsoft:#2d1418; --accent:#ab7df8; --accentsoft:#231631;
+  --warn:#d29922; --warnsoft:#272115; --blue:#4493f8; --bluesoft:#121d2f; --shadow: rgba(0,0,0,0.4); } }
 .card { fill: var(--card); stroke: var(--line); }
 .card2 { fill: var(--card2); stroke: var(--line); }
 .ink { fill: var(--ink); } .muted { fill: var(--muted); } .faint { fill: var(--faint); }
 .good { fill: var(--good); } .bad { fill: var(--bad); } .accent { fill: var(--accent); } .warn { fill: var(--warn); } .blue { fill: var(--blue); }
-.goodsoft { fill: var(--goodsoft); } .ontime { fill: var(--good); opacity: 0.22; } .badsoft { fill: var(--badsoft); } .accentsoft { fill: var(--accentsoft); } .warnsoft { fill: var(--warnsoft); } .bluesoft { fill: var(--bluesoft); }
-.line { stroke: var(--line); } .sline { stroke: var(--muted); } .sgood { stroke: var(--good); } .sbad { stroke: var(--bad); } .saccent { stroke: var(--accent); } .swarn { stroke: var(--warn); }
+.goodsoft { fill: var(--goodsoft); } .badsoft { fill: var(--badsoft); } .accentsoft { fill: var(--accentsoft); } .warnsoft { fill: var(--warnsoft); } .bluesoft { fill: var(--bluesoft); }
+.ontime { fill: var(--good); opacity: 0.24; }
+.line { stroke: var(--line); } .line2 { stroke: var(--line2); } .sline { stroke: var(--muted); } .sfaint { stroke: var(--faint); }
+.sgood { stroke: var(--good); } .sbad { stroke: var(--bad); } .saccent { stroke: var(--accent); } .swarn { stroke: var(--warn); } .sblue { stroke: var(--blue); } .sink { stroke: var(--ink); }
 .sans { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif; } .mono { font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace; }
+.lift { filter: drop-shadow(0 1px 2px var(--shadow)) drop-shadow(0 6px 16px var(--shadow)); }
+.play { animation: sweep 5.5s cubic-bezier(.45,.05,.55,.95) infinite; }
+@keyframes sweep { 0% { transform: translateX(0); opacity: 0; } 6% { opacity: 1; } 88% { opacity: 1; } 100% { transform: translateX(var(--run)); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .play { animation: none; opacity: 0; } }
 </style>
-<rect x="0.5" y="0.5" width="1279" height="329" rx="18" class="card"/>
-<text x="48" y="44" xml:space="preserve" class="muted sans" font-size="12" font-weight="600" text-anchor="start" letter-spacing="1.2">SIX VERDICTS, AND WHAT EACH LETS YOU SAY</text><rect x="48" y="66" width="381.3333333333333" height="108" rx="14" class="card2"/>
-<rect x="68" y="84" width="72" height="28" rx="14" class="goodsoft"/><text x="104" y="103.04" xml:space="preserve" class="good mono" font-size="14" font-weight="600" text-anchor="middle">better</text>
-<text x="70" y="138" xml:space="preserve" class="muted sans" font-size="14" font-weight="400" text-anchor="start">confirmed on fresh repetitions</text>
-<text x="70" y="160" xml:space="preserve" class="ink sans" font-size="14" font-weight="600" text-anchor="start">"Improved by X, interval Y"</text><rect x="449.3333333333333" y="66" width="381.3333333333333" height="108" rx="14" class="card2"/>
-<rect x="469.3333333333333" y="84" width="63" height="28" rx="14" class="badsoft"/><text x="500.8333333333333" y="103.04" xml:space="preserve" class="bad mono" font-size="14" font-weight="600" text-anchor="middle">worse</text>
-<text x="471.3333333333333" y="138" xml:space="preserve" class="muted sans" font-size="14" font-weight="400" text-anchor="start">confirmed on fresh repetitions</text>
-<text x="471.3333333333333" y="160" xml:space="preserve" class="ink sans" font-size="14" font-weight="600" text-anchor="start">"Regressed by X"</text><rect x="850.6666666666666" y="66" width="381.3333333333333" height="108" rx="14" class="card2"/>
-<rect x="870.6666666666666" y="84" width="55" height="28" rx="14" class="bluesoft"/><text x="898.1666666666666" y="103.04" xml:space="preserve" class="blue mono" font-size="14" font-weight="600" text-anchor="middle">same</text>
-<text x="872.6666666666666" y="138" xml:space="preserve" class="muted sans" font-size="14" font-weight="400" text-anchor="start">the interval fits inside the margin</text>
-<text x="872.6666666666666" y="160" xml:space="preserve" class="ink sans" font-size="14" font-weight="600" text-anchor="start">"No change larger than ±margin"</text><rect x="48" y="190" width="381.3333333333333" height="108" rx="14" class="card2"/>
-<rect x="68" y="208" width="124" height="28" rx="14" class="warnsoft"/><text x="130" y="227.04" xml:space="preserve" class="warn mono" font-size="14" font-weight="600" text-anchor="middle">inconclusive</text>
-<text x="70" y="262" xml:space="preserve" class="muted sans" font-size="14" font-weight="400" text-anchor="start">the data can't tell</text>
-<text x="70" y="284" xml:space="preserve" class="ink sans" font-size="14" font-weight="600" text-anchor="start">"Not known". Never "no difference"</text><rect x="449.3333333333333" y="190" width="381.3333333333333" height="108" rx="14" class="card2"/>
-<rect x="469.3333333333333" y="208" width="81" height="28" rx="14" class="badsoft"/><text x="509.8333333333333" y="227.04" xml:space="preserve" class="bad mono" font-size="14" font-weight="600" text-anchor="middle">invalid</text>
-<text x="471.3333333333333" y="262" xml:space="preserve" class="muted sans" font-size="14" font-weight="400" text-anchor="start">the steps didn't do what they claim</text>
-<text x="471.3333333333333" y="284" xml:space="preserve" class="ink sans" font-size="14" font-weight="600" text-anchor="start">Nothing yet: it may be a real bug</text><rect x="850.6666666666666" y="190" width="381.3333333333333" height="108" rx="14" class="card2"/>
-<rect x="870.6666666666666" y="208" width="142" height="28" rx="14" class="accentsoft"/><text x="941.6666666666666" y="227.04" xml:space="preserve" class="accent mono" font-size="14" font-weight="600" text-anchor="middle">not-measurable</text>
-<text x="872.6666666666666" y="262" xml:space="preserve" class="muted sans" font-size="14" font-weight="400" text-anchor="start">this machine can't measure now</text>
-<text x="872.6666666666666" y="284" xml:space="preserve" class="ink sans" font-size="14" font-weight="600" text-anchor="start">"Unmeasured", and why</text>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="sfaint"/></marker>
+<marker id="arrowgood" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sgood"/></marker>
+<pattern id="dots" width="18" height="18" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" class="faint" opacity="0.28"/></pattern>
+</defs>
+<rect x="0.5" y="0.5" width="1279" height="359" rx="20" class="card"/><rect x="0.5" y="0.5" width="1279" height="359" rx="20" fill="url(#dots)"/><text x="48" y="48" xml:space="preserve" class="muted sans" font-size="12" font-weight="700" text-anchor="start" letter-spacing="1.4">SIX VERDICTS, AND WHAT EACH LETS YOU SAY</text><g class="lift"><rect x="48" y="70" width="381.3333333333333" height="118" rx="16" class="card2"/></g>
+<rect x="68" y="90" width="34" height="34" rx="10" class="goodsoft"/><text x="85" y="113" xml:space="preserve" class="good sans" font-size="19" font-weight="800" text-anchor="middle">↑</text>
+<text x="114" y="113" xml:space="preserve" class="good mono" font-size="17" font-weight="700" text-anchor="start">better</text>
+<text x="70" y="148" xml:space="preserve" class="muted sans" font-size="14" font-weight="400" text-anchor="start">confirmed on fresh repetitions</text>
+<text x="70" y="170" xml:space="preserve" class="ink sans" font-size="14.5" font-weight="650" text-anchor="start">"Improved by X, interval Y"</text><g class="lift"><rect x="449.3333333333333" y="70" width="381.3333333333333" height="118" rx="16" class="card2"/></g>
+<rect x="469.3333333333333" y="90" width="34" height="34" rx="10" class="badsoft"/><text x="486.3333333333333" y="113" xml:space="preserve" class="bad sans" font-size="19" font-weight="800" text-anchor="middle">↓</text>
+<text x="515.3333333333333" y="113" xml:space="preserve" class="bad mono" font-size="17" font-weight="700" text-anchor="start">worse</text>
+<text x="471.3333333333333" y="148" xml:space="preserve" class="muted sans" font-size="14" font-weight="400" text-anchor="start">confirmed on fresh repetitions</text>
+<text x="471.3333333333333" y="170" xml:space="preserve" class="ink sans" font-size="14.5" font-weight="650" text-anchor="start">"Regressed by X"</text><g class="lift"><rect x="850.6666666666666" y="70" width="381.3333333333333" height="118" rx="16" class="card2"/></g>
+<rect x="870.6666666666666" y="90" width="34" height="34" rx="10" class="bluesoft"/><text x="887.6666666666666" y="113" xml:space="preserve" class="blue sans" font-size="19" font-weight="800" text-anchor="middle">=</text>
+<text x="916.6666666666666" y="113" xml:space="preserve" class="blue mono" font-size="17" font-weight="700" text-anchor="start">same</text>
+<text x="872.6666666666666" y="148" xml:space="preserve" class="muted sans" font-size="14" font-weight="400" text-anchor="start">the interval fits inside the margin</text>
+<text x="872.6666666666666" y="170" xml:space="preserve" class="ink sans" font-size="14.5" font-weight="650" text-anchor="start">"No change larger than ±margin"</text><g class="lift"><rect x="48" y="206" width="381.3333333333333" height="118" rx="16" class="card2"/></g>
+<rect x="68" y="226" width="34" height="34" rx="10" class="warnsoft"/><text x="85" y="249" xml:space="preserve" class="warn sans" font-size="19" font-weight="800" text-anchor="middle">?</text>
+<text x="114" y="249" xml:space="preserve" class="warn mono" font-size="17" font-weight="700" text-anchor="start">inconclusive</text>
+<text x="70" y="284" xml:space="preserve" class="muted sans" font-size="14" font-weight="400" text-anchor="start">the data can't tell</text>
+<text x="70" y="306" xml:space="preserve" class="ink sans" font-size="14.5" font-weight="650" text-anchor="start">"Not known". Never "no difference"</text><g class="lift"><rect x="449.3333333333333" y="206" width="381.3333333333333" height="118" rx="16" class="card2"/></g>
+<rect x="469.3333333333333" y="226" width="34" height="34" rx="10" class="badsoft"/><text x="486.3333333333333" y="249" xml:space="preserve" class="bad sans" font-size="19" font-weight="800" text-anchor="middle">!</text>
+<text x="515.3333333333333" y="249" xml:space="preserve" class="bad mono" font-size="17" font-weight="700" text-anchor="start">invalid</text>
+<text x="471.3333333333333" y="284" xml:space="preserve" class="muted sans" font-size="14" font-weight="400" text-anchor="start">the steps didn't do what they claim</text>
+<text x="471.3333333333333" y="306" xml:space="preserve" class="ink sans" font-size="14.5" font-weight="650" text-anchor="start">Nothing yet: it may be a real bug</text><g class="lift"><rect x="850.6666666666666" y="206" width="381.3333333333333" height="118" rx="16" class="card2"/></g>
+<rect x="870.6666666666666" y="226" width="34" height="34" rx="10" class="accentsoft"/><text x="887.6666666666666" y="249" xml:space="preserve" class="accent sans" font-size="19" font-weight="800" text-anchor="middle">×</text>
+<text x="916.6666666666666" y="249" xml:space="preserve" class="accent mono" font-size="17" font-weight="700" text-anchor="start">not-measurable</text>
+<text x="872.6666666666666" y="284" xml:space="preserve" class="muted sans" font-size="14" font-weight="400" text-anchor="start">this machine can't measure now</text>
+<text x="872.6666666666666" y="306" xml:space="preserve" class="ink sans" font-size="14.5" font-weight="650" text-anchor="start">"Unmeasured", and why</text>
 </svg>

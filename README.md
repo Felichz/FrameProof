@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/readme/hero.svg" width="100%" alt="frameproof: frame-level performance evidence for web apps, built to be used by coding agents. One scroll of the sample app, frame by frame, with its late frames in red; after the fix, 24 late frames a step went to 0, confirmed on fresh repetitions.">
+  <img src="docs/readme/hero.svg" width="100%" alt="frameproof: frame-level performance evidence for web apps, built to be used by coding agents. One scroll of the sample app at 4x CPU, frame by frame: 35 late frames of 112 before the fix, 0 after; the median went from 24 late frames a step to 0, confirmed on fresh repetitions.">
 </p>
 
 <p align="center">
