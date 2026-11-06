@@ -2,7 +2,7 @@
 // Repeated options collect into a list (`-s scroll -s load`), and so does a comma list (`--throttle 1,4`).
 
 const SHORT = { s: 'scenario', n: 'n', h: 'help' };
-const BOOLEAN = new Set(['full', 'background', 'cold', 'help', 'headless', 'keep', 'show', 'json', 'dry-run', 'force', 'light']);
+const BOOLEAN = new Set(['full', 'background', 'cold', 'help', 'headless', 'keep', 'show', 'json', 'dry-run', 'force', 'light', 'battery', 'no-counts', 'no-journal']);
 
 export function parseArgs(argv) {
   const out = { _: [], flags: {} };

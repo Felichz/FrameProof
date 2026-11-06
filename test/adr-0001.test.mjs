@@ -38,6 +38,7 @@ test('the timeline keeps late frames from the act, and the page\'s marks', () =>
   t.events = [
     { cat: 'blink.user_timing', pid: 10, ts: 1_200_000, name: 'live:mount:app' },
     { cat: 'blink.user_timing', pid: 10, ts: 1_000_000, name: 'perf:act' },
+    { cat: 'blink.user_timing', pid: 10, ts: 1_100_000, name: 'domInteractive' },
   ];
   const frames = [{ ts: 1_016_000, bad: false }, { ts: 1_250_000, bad: true, stage: 'main' }, { ts: 1_266_000, bad: true, stage: 'gpu' }];
   assert.deepEqual(lateTimeline(t, frames), { late: [[250, 'main'], [266, 'gpu']], marks: [[200, 'live:mount:app']] });

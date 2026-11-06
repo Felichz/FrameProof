@@ -284,6 +284,9 @@ export function surfaceKind(sink) {
 
 const LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
 
+/** Chrome's own navigation and paint marks, which land in user timing too: not the page's. */
+export const CHROME_MARKS = /^(navigationStart|fetchStart|requestStart|responseStart|responseEnd|domLoading|domInteractive|domContentLoaded|domComplete|loadEvent|unloadEvent|redirect|connect|domain|secureConnection|commitNavigation|firstPaint|firstContentfulPaint|firstMeaningfulPaint|largestContentfulPaint)/;
+
 /** Where the page's local subframes ran: the local origins whose frames had a process other than the
     page's (another local site, out of process) and the ones that shared it. Which local name a page is on
     can decide this, and with it what the page costs (ADR 0001 D1). */
@@ -315,7 +318,7 @@ export function lateTimeline(t, frames, { max = 240 } = {}) {
   const act = t.actTs ?? frames[0]?.ts ?? 0;
   const late = frames.filter((f) => f.bad).slice(0, max).map((f) => [Math.round((f.ts - act) / 1000), f.stage]);
   const marks = t.events
-    .filter((e) => e.cat?.includes('blink.user_timing') && e.pid === t.pagePid && e.ts >= act && typeof e.name === 'string' && !/^(perf:|fp\|)/.test(e.name))
+    .filter((e) => e.cat?.includes('blink.user_timing') && e.pid === t.pagePid && e.ts >= act && typeof e.name === 'string' && !/^(perf:|fp\|)/.test(e.name) && !CHROME_MARKS.test(e.name))
     .sort((a, b) => a.ts - b.ts)
     .map((e) => [Math.round((e.ts - act) / 1000), e.name])
     .filter((m, i, all) => all.findIndex((x) => x[1] === m[1]) === i)

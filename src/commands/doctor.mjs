@@ -4,7 +4,7 @@
 import { launch, sleep, vsyncOf } from '../browser.mjs';
 import { countFrames, CATEGORIES, readFrames, readTrace } from '../core/trace.mjs';
 import { findFreezes } from '../core/freezes.mjs';
-import { busy, chromePath, chromeVersion, display, TESTED_CHROME } from '../machine.mjs';
+import { busy, chromePath, chromeVersion, display, TESTED_CHROME, power } from '../machine.mjs';
 import { readCalibration } from './_shared.mjs';
 
 const PAGE = `<!doctype html><title>frameproof self-test</title><div id=b style="width:120px;height:120px;background:#c33"></div>
@@ -49,6 +49,8 @@ export default async function doctor(ctx) {
   }
   evidence.push({ chrome: version, path, tested: `${TESTED_CHROME.min}-${TESTED_CHROME.max}`, inRange: major >= TESTED_CHROME.min && major <= TESTED_CHROME.max });
   const load = await busy();
+  const pw = power();
+  evidence.push({ power: pw.battery ? `battery (${pw.why})` : 'plugged in, or no battery' });
   evidence.push({ cpu: `${Math.round(load.share * 100)}% in use`, busy: load.busy, top: load.top });
   evidence.push({ display: d.ok ? 'yes' : `no: ${d.why}`, note: d.note });
   let test = null;
@@ -73,6 +75,10 @@ export default async function doctor(ctx) {
     status = 'not-measurable';
     summary = `the self-test failed: a known freeze was not found in Chrome ${version}'s trace${major > TESTED_CHROME.max ? ', which is newer than the range checked: its trace format may have changed' : ''}. Verdicts would not be trustworthy`;
     next.push('report it, with this output, at github.com/Felichz/FrameProof/issues');
+  } else if (pw.battery) {
+    status = 'not-measurable';
+    summary = `the machine runs on its battery (${pw.why}), which slows its CPU and GPU: plug it in to measure frames (or pass --battery to a command, knowing numbers won't compare with other runs)`;
+    next.push('plug the machine in, then: frameproof doctor');
   } else if (load.busy) {
     status = 'not-measurable';
     summary = `the machine is busy (${Math.round(load.share * 100)}% CPU${load.top?.length ? `: ${load.top.map((p) => p.name).join(', ')}` : ''}): wait for it to end, and don't stop processes you didn't start`;

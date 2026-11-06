@@ -3,7 +3,7 @@
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { list, number, UsageError } from '../cli/args.mjs';
-import { busy, chromePath, display } from '../machine.mjs';
+import { busy, chromePath, display, power } from '../machine.mjs';
 import { pick } from '../scenarios.mjs';
 import { dirOf, ensure, readJson, Run, writeJson } from '../store.mjs';
 
@@ -32,6 +32,11 @@ export async function guard(ctx, { frames = true } = {}) {
   if (!chromePath()) return { status: 'not-measurable', summary: 'Chrome is not installed where frameproof looks, and CHROME_PATH is not set', next: ['npx @puppeteer/browsers install chrome@stable', 'then set CHROME_PATH to the path it prints'] };
   const d = display();
   if (frames && !d.ok && !ctx.flags.headless) return { status: 'not-measurable', summary: `frames can't be judged here: ${d.why}. Counted work still can, headless.`, next: ['frameproof ledger -s <scenario> --headless', 'frameproof check --headless'] };
+  // On battery a laptop slows its CPU and GPU, and by more as the charge falls: frames then are about the
+  // battery. Counted work still runs; frames need --battery to be measured anyway.
+  const p = power();
+  if (p.battery && frames && !ctx.flags.battery) return { status: 'not-measurable', summary: `the machine runs on its battery (${p.why}): it slows the CPU and GPU, by more as the charge falls, so frames now would be about the battery. Plug it in, or pass --battery to measure anyway (both builds of a compare are slowed alike; numbers from other runs won't compare).`, next: ['plug the machine in, then run the same command again', 'the same command with --battery'] };
+  if (p.battery) ctx.loadNote = [ctx.loadNote, `on battery (${p.why})`].filter(Boolean).join('; ');
   const b = await busy();
   if (ctx.flags['ignore-load']) {
     if (b.busy) ctx.loadNote = `measured on a busy machine (${Math.round(b.share * 100)}% CPU), with --ignore-load: frame counts are about that load as much as the page`;

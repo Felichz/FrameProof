@@ -2,7 +2,7 @@
 // machines are never put side by side.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { arch, cpus, freemem, platform, release, totalmem } from 'node:os';
 
 const CANDIDATES = {
@@ -103,4 +103,27 @@ export function fingerprint(chrome = chromeVersion(chromePath())) {
   const hash = createHash('sha1').update(JSON.stringify(parts)).digest('hex').slice(0, 6);
   const short = `${platform()}-${model.split(' ').at(-1).toLowerCase()}-${parts.cores}c-chrome${String(chrome ?? '0').split('.')[0]}-${hash}`;
   return { id: short, ...parts, freeMemoryGb: +(freemem() / 2 ** 30).toFixed(1) };
+}
+
+/**
+ * Whether the machine runs on its battery. A laptop on battery slows its CPU and GPU, by a different amount
+ * as the charge falls: the same build read 39 late frames a step on battery and 10.5 an hour before on the
+ * charger. Returns { battery: true, why } on battery, { battery: false } otherwise or when it can't tell.
+ */
+export function power() {
+  try {
+    if (process.platform === 'darwin') {
+      const out = execFileSync('pmset', ['-g', 'batt'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+      if (/'Battery Power'/.test(out)) return { battery: true, why: (/\d+%; [a-z ]+/.exec(out)?.[0] ?? 'on battery').trim() };
+    } else if (process.platform === 'linux') {
+      for (const f of ['/sys/class/power_supply/AC/online', '/sys/class/power_supply/AC0/online', '/sys/class/power_supply/ADP1/online']) {
+        if (existsSync(f)) return readFileSync(f, 'utf8').trim() === '0' ? { battery: true, why: 'on battery' } : { battery: false };
+      }
+    } else if (process.platform === 'win32') {
+      const out = execFileSync('powershell', ['-NoProfile', '-Command', '(Get-CimInstance Win32_Battery).BatteryStatus'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+      // 1: discharging (on battery); 2: on AC. No battery prints nothing.
+      if (out.split(/\s+/).includes('1')) return { battery: true, why: 'on battery' };
+    }
+  } catch {}
+  return { battery: false };
 }
