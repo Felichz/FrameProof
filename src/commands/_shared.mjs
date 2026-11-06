@@ -126,11 +126,12 @@ export function modeNote(records) {
     for (const h of r.mode.together ?? []) together.add(host(h));
   }
   if (!apart.size && !together.size) return '';
-  const page = [...pages].join(', ') || '?';
+  // (A step whose trace didn't name its main frame's url has no page host: the others say it.)
+  pages.delete('');
   const parts = [];
   if (apart.size) parts.push(`frames from ${[...apart].join(', ')} ran in their own process`);
   if (together.size) parts.push(`frames from ${[...together].join(', ')} shared the page's process`);
-  return `mode: page on ${page}; ${parts.join('; ')}`;
+  return `mode: ${pages.size ? `page on ${[...pages].join(', ')}; ` : ''}${parts.join('; ')}`;
 }
 
 /** A records' mode as a key: two builds measured in different modes aren't the same experiment. */
