@@ -4,6 +4,7 @@ import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs
 import { dirname, join, relative, resolve } from 'node:path';
 import { list, number, UsageError } from '../cli/args.mjs';
 import { busy, chromePath, display, power } from '../machine.mjs';
+import { displayProbe } from '../probe.mjs';
 import { pick } from '../scenarios.mjs';
 import { dirOf, ensure, readJson, Run, writeJson } from '../store.mjs';
 
@@ -47,6 +48,11 @@ export async function guard(ctx, { frames = true } = {}) {
     // says it ran on a busy machine.
     ctx.loadNote = `counted on a busy machine (${Math.round(b.share * 100)}% CPU): counts hold, times run high`;
     return null;
+  }
+  if (!b.busy && frames && !ctx.flags.headless && !ctx.flags['ignore-display']) {
+    // The CPU is free; is the display? Other apps drawing keep the GPU busy, which no CPU share shows.
+    const probe = await displayProbe().catch(() => null);
+    if (probe && !probe.ok) return { status: 'not-measurable', summary: `the display is busy: a blank page's animation, drawn by the compositor alone, had ${probe.late} of ${probe.frames} frames late (${Math.round(probe.share * 100)}%). Other apps are keeping the GPU busy, and the page's frames would be about them. Close or hide what is animating (a video, a window that redraws), or pass --ignore-display.`, evidence: [{ probe }], next: ['frameproof doctor', 'the same command once the display is quiet, or with --ignore-display'] };
   }
   if (b.busy) {
     const who = b.top?.length ? `; using it: ${b.top.map((p) => `${p.name} ${Math.round(p.cpu)}%`).join(', ')}` : '';

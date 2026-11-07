@@ -5,6 +5,7 @@ import { launch, sleep, vsyncOf } from '../browser.mjs';
 import { countFrames, CATEGORIES, readFrames, readTrace } from '../core/trace.mjs';
 import { findFreezes } from '../core/freezes.mjs';
 import { busy, chromePath, chromeVersion, display, TESTED_CHROME, power } from '../machine.mjs';
+import { displayProbe } from '../probe.mjs';
 import { readCalibration } from './_shared.mjs';
 
 const PAGE = `<!doctype html><title>frameproof self-test</title><div id=b style="width:120px;height:120px;background:#c33"></div>
@@ -62,6 +63,9 @@ export default async function doctor(ctx) {
       evidence.push({ selfTest: `could not run: ${e.message.split('\n')[0]}` });
     }
   }
+  // The display, apart from the CPU: other apps drawing keep the GPU busy, which no CPU share shows.
+  const probe = d.ok && !ctx.flags.headless && !ctx.flags.quick ? await displayProbe().catch(() => null) : null;
+  if (probe) evidence.push({ displayProbe: probe.ok ? `free: ${probe.late} of ${probe.frames} frames of a quiet animation late` : `BUSY: ${probe.late} of ${probe.frames} frames of a quiet animation late (${Math.round(probe.share * 100)}%)` });
   const cal = readCalibration(ctx);
   evidence.push({ machine: ctx.machine.id, calibrated: Object.keys(cal.cells).length ? `${Object.keys(cal.cells).length} cells` : 'no' });
 
@@ -75,6 +79,10 @@ export default async function doctor(ctx) {
     status = 'not-measurable';
     summary = `the self-test failed: a known freeze was not found in Chrome ${version}'s trace${major > TESTED_CHROME.max ? ', which is newer than the range checked: its trace format may have changed' : ''}. Verdicts would not be trustworthy`;
     next.push('report it, with this output, at github.com/Felichz/FrameProof/issues');
+  } else if (probe && !probe.ok) {
+    status = 'not-measurable';
+    summary = `the display is busy: a quiet animation on a blank page had ${probe.late} of ${probe.frames} frames late. Other apps are keeping the GPU busy (a video, a window that redraws): frames now would be about them`;
+    next.push('frameproof doctor');
   } else if (pw.battery) {
     status = 'not-measurable';
     summary = `the machine runs on its battery (${pw.why}), which slows its CPU and GPU: plug it in to measure frames (or pass --battery to a command, knowing numbers won't compare with other runs)`;
