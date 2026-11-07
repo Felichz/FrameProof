@@ -31,3 +31,14 @@ them. A false claim in the A/A, or a missed freeze, is reported.
 A container or a server has no display and no GPU: `doctor` returns `not-measurable` for frames, and
 `next` falls back to `ledger` and `check` on counted work, headless, labeled as such. Never compare numbers
 from two machines, or two days: compare runs both builds in one session for that reason.
+
+## Staying awake
+
+A machine that sleeps, or dims its display, draws no frames: a run left alone would stop halfway. On
+macOS every command that measures keeps the machine and its display awake for as long as it runs
+(`caffeinate -dims -w <its pid>`), and lets go when it ends, however it ends; nothing in the system's
+settings changes. `--no-keep-awake` leaves the machine to its own settings. On Windows and Linux, keep the
+machine from sleeping yourself while a long run measures.
+
+A run started with `--background` lives in a process of its own, apart from the agent's session: if the
+session ends, the run goes on, and `frameproof wait <run>` or `show <run>` picks it up.

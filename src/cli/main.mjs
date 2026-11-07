@@ -112,6 +112,7 @@ export async function main(argv) {
   try {
     const config = await loadConfig(root);
     if (flags.background && LONG.has(name)) return print(background(root, name, argv), opts);
+    if (LONG.has(name) && !flags['no-keep-awake']) keepAwake();
     const mod = await load();
     let machine;
     const ctx = {
@@ -133,6 +134,20 @@ export async function main(argv) {
     if (process.env.FRAMEPROOF_DEBUG) process.stderr.write(`${e.stack}\n`);
     return print(envelope({ status: 'error', tool: tool(), summary: `${name} failed: ${e.message.split('\n')[0]}`, evidence: e.message.includes('\n') ? [{ detail: e.message.split('\n').slice(1, 14).join('\n') }] : [], next: ['frameproof doctor'] }), opts);
   }
+}
+
+/**
+ * While a command measures, the machine stays awake with its display on: a Mac that sleeps or dims its
+ * screen draws no frames, and a long run left alone stopped halfway, more than once, with nothing to say
+ * why. On macOS, `caffeinate` asserts it for exactly as long as this process lives (-w), and lets go on its
+ * own when the process ends, however it ends. Nothing is changed in the system's settings.
+ * `--no-keep-awake` leaves the machine to its own settings.
+ */
+function keepAwake() {
+  if (process.platform !== 'darwin') return;
+  try {
+    spawn('caffeinate', ['-dims', '-w', String(process.pid)], { stdio: 'ignore', detached: true }).unref();
+  } catch {}
 }
 
 /** The same command in a process of its own, writing to a run folder that can be read at any time. */
