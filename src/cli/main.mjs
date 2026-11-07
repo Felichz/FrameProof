@@ -147,6 +147,13 @@ function keepAwake() {
   if (process.platform !== 'darwin') return;
   try {
     spawn('caffeinate', ['-dims', '-w', String(process.pid)], { stdio: 'ignore', detached: true }).unref();
+    // -d keeps the display on, but not the session unlocked: a Mac set to lock after a while idle locked
+    // halfway through a run, and a locked screen hides Chrome's window (its browser then went away). The
+    // user is declared active every 25 s while the command runs (caffeinate -u, 30 s each), and no
+    // longer once it ends. It doesn't stop a lock asked for by hand, or a closed lid.
+    const active = () => spawn('caffeinate', ['-u', '-t', '30'], { stdio: 'ignore', detached: true }).unref();
+    active();
+    setInterval(active, 25_000).unref();
   } catch {}
 }
 

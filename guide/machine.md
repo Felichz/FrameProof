@@ -36,8 +36,10 @@ from two machines, or two days: compare runs both builds in one session for that
 
 A machine that sleeps, or dims its display, draws no frames: a run left alone would stop halfway. On
 macOS every command that measures keeps the machine and its display awake for as long as it runs
-(`caffeinate -dims -w <its pid>`), and lets go when it ends, however it ends; nothing in the system's
-settings changes. `--no-keep-awake` leaves the machine to its own settings. On Windows and Linux, keep the
+(`caffeinate -dims -w <its pid>`), and declares the user active every 25 seconds (`caffeinate -u`), so a Mac
+set to lock after a while idle doesn't lock halfway through a run (a locked screen hides Chrome's window).
+It lets go when the command ends, however it ends (the last declaration of activity runs out within 30 s); nothing in the system's settings changes. It can't stop
+a lock asked for by hand, or a closed lid. `--no-keep-awake` leaves the machine to its own settings. On Windows and Linux, keep the
 machine from sleeping yourself while a long run measures.
 
 A run started with `--background` lives in a process of its own, apart from the agent's session: if the
