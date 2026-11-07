@@ -102,6 +102,7 @@ export default async function bisectCommand(ctx) {
   else if (onBattery && found.culprits.length) summary = `${found.culprits.map((c) => c.label).join(' and ')} kept the gain on screening; not confirmed in frames, since the machine runs on its battery: plug it in and run frameproof price --inject '<the culprit>' -s ${scenarios[0].name}`;
   else if (named.length) summary = `${named.join(' and ')} ${named.length > 1 ? 'hold' : 'holds'} ${scenarios[0].name}'s frames: confirmed on a ${confirmMin}-minute run${found.together.length ? `; also only together: ${found.together.join('; ')}` : ''}`;
   else if (found.together.length) summary = `the cost shows only with these away together, not with any part of them: ${found.together.join('; ')}. Two causes that cover for each other, or one spread across them`;
+  else if (confirmed.some((c) => c.status === 'partial' || c.lost)) summary = `${found.culprits.map((c) => c.label).join(' and ')} kept the gain on screening; the confirmation was cut short (${confirmed.find((c) => c.lost)?.lost ?? 'partial'}), so it is not confirmed yet: frameproof price --inject '<the culprit>' -s ${scenarios[0].name}`;
   else summary = `the split candidates looked better on screening, but none held on confirmation: ${found.culprits.map((c) => c.label).join(', ') || 'none'}`;
   summary += ` (${found.steps.length} split(s) priced${Object.keys(resumed).length ? `, ${Object.keys(resumed).length} taken from the resumed run` : ''}, screened by ${screen}).`;
   if (serving) summary += ` ${serving}.`;
