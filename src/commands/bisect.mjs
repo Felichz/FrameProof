@@ -12,6 +12,7 @@ import { resolve } from 'node:path';
 import { number, string, UsageError } from '../cli/args.mjs';
 import { bisect, bisectCommits, combine, expand, FINER } from '../core/bisect.mjs';
 import { blocks, ready } from '../session.mjs';
+import { power } from '../machine.mjs';
 import { Run } from '../store.mjs';
 import { abSession } from './ab.mjs';
 import { appendJournal, guard, modeNote, openRun, scenariosFor, throttles } from './_shared.mjs';
@@ -45,7 +46,8 @@ export default async function bisectCommand(ctx) {
   const stop = await check();
   if (stop) return stop;
   const screen = string(f, 'screen', 'frames');
-  const resumed = f.resume ? Run.open(ctx.root, string(f, 'resume', null))?.meta?.bisect?.cache ?? {} : {};
+  // A split that was cut short (the browser lost, the run stopped) isn't a result: it's measured again.
+  const resumed = Object.fromEntries(Object.entries(f.resume ? Run.open(ctx.root, string(f, 'resume', null))?.meta?.bisect?.cache ?? {} : {}).filter(([, r]) => r && r.status !== 'partial' && !r.lost));
   const run = openRun(ctx, { command: 'bisect', scenarios: scenarios.map((s) => s.name), throttles: ths, candidates: raw, screen, refine: refine ?? undefined, note: string(f, 'note', null) });
   const build = ready(ctx.config, string(f, 'ref', 'worktree'), f);
   const cache = { ...resumed };
@@ -79,20 +81,25 @@ export default async function bisectCommand(ctx) {
   };
   const judge = async (set, key) => {
     const r = screen === 'work' ? await byWork(set) : await byFrames(set, screenMin);
-    cache[key] = r;
-    run.save({ bisect: { cache } });
+    if (r.status !== 'partial' && !r.lost) {
+      cache[key] = r;
+      run.save({ bisect: { cache } });
+    }
     return r;
   };
 
   const found = await bisect(candidates, judge, { maxSteps, known: resumed });
-  // Each culprit confirmed in frames, on a longer run.
+  // Each culprit confirmed in frames, on a longer run; not on battery, where frames would be about the
+  // battery (a bisection screened by work can run there): the confirmation is left as a command.
   const confirmed = [];
-  for (const c of found.culprits) confirmed.push({ candidate: c.label, ...(await byFrames([c], confirmMin)) });
+  const onBattery = power().battery && !f.battery;
+  if (!onBattery) for (const c of found.culprits) confirmed.push({ candidate: c.label, ...(await byFrames([c], confirmMin)) });
 
   const serving = modeNote(records);
   const named = confirmed.filter((c) => c.better).map((c) => c.candidate);
   let summary;
   if (!found.explained) summary = `taking all ${raw.length} candidates away together didn't make ${scenarios[0].name} better: the cost isn't among them`;
+  else if (onBattery && found.culprits.length) summary = `${found.culprits.map((c) => c.label).join(' and ')} kept the gain on screening; not confirmed in frames, since the machine runs on its battery: plug it in and run frameproof price --inject '<the culprit>' -s ${scenarios[0].name}`;
   else if (named.length) summary = `${named.join(' and ')} ${named.length > 1 ? 'hold' : 'holds'} ${scenarios[0].name}'s frames: confirmed on a ${confirmMin}-minute run${found.together.length ? `; also only together: ${found.together.join('; ')}` : ''}`;
   else if (found.together.length) summary = `the cost shows only with these away together, not with any part of them: ${found.together.join('; ')}. Two causes that cover for each other, or one spread across them`;
   else summary = `the split candidates looked better on screening, but none held on confirmation: ${found.culprits.map((c) => c.label).join(', ') || 'none'}`;
