@@ -79,6 +79,7 @@ export function dossier(t, run, { t0, vsyncMs, placeTrace, profiles, window: spa
       raster: sum(/^RasterDecoderImpl::DoEndRasterCHROMIUM$/),
       composite: sum(/^SkiaOutputSurfaceImplOnGpu::FinishPaintRenderPass$/),
       video: sum(/Video|Media|D3D11Video|VideoDecoder/),
+      top: gpuTop(g, a, b),
     };
   }
 
@@ -137,6 +138,27 @@ function gpuWait(main, a, b, overlap) {
   const top = Object.entries(calls).sort((x, y) => y[1] - x[1]);
   const shaderMs = top.filter(([c]) => SHADER_GL.test(c)).reduce((s, [, v]) => s + v, 0);
   return { ms: Math.round(ms), shaderMs: Math.round(shaderMs), calls: Object.fromEntries(top.slice(0, 4).map(([c, v]) => [c, Math.round(v)])) };
+}
+
+/** The GPU main thread's own time in the window, by task name: what "busy" was doing (ADR 0002 D7). The
+    generic wrappers (a task, a scheduler run) are left out: what ran inside them names it. */
+const GPU_GENERIC = /^(RunTask|ThreadControllerImpl::RunTask|ThreadPool_RunTask|SequenceManager|TaskAnnotator|Scheduler::RunNextTask|GpuChannel::ExecuteDeferredRequest|CommandBufferStub::OnAsyncFlush|CommandBufferStub::ExecuteDeferredRequest)/;
+function gpuTop(events, a, b) {
+  const inside = (e) => Math.max(0, Math.min(b, e.ts + e.dur) - Math.max(a, e.ts));
+  const frames = [];
+  const stack = [];
+  const list = events.filter((e) => e.dur && e.ts + e.dur >= a && e.ts <= b).sort((x, y) => x.ts - y.ts || y.dur - x.dur);
+  for (const e of list) {
+    while (stack.length && stack.at(-1).end <= e.ts) stack.pop();
+    // A task's own time: its time in the window less its children's.
+    if (stack.length) stack.at(-1).own -= inside(e);
+    const fr = { name: e.name, end: e.ts + e.dur, own: inside(e) };
+    stack.push(fr);
+    frames.push(fr);
+  }
+  const by = {};
+  for (const fr of frames) if (!GPU_GENERIC.test(fr.name)) by[fr.name] = (by[fr.name] ?? 0) + Math.max(0, fr.own) / 1000;
+  return Object.entries(by).filter(([, ms]) => ms >= 1).sort((x, y) => y[1] - x[1]).slice(0, 4).map(([n, ms]) => `${n} ${Math.round(ms)} ms`);
 }
 
 /** One task, split into what ran in it. */
@@ -275,7 +297,11 @@ export function verdict(f) {
     const parts = `${f.gpu.shaders ? `${f.gpu.shaders} shaders compiled, ` : ''}raster ${f.gpu.raster} ms, composite ${f.gpu.composite} ms`;
     const named = f.gpu.raster + f.gpu.composite + (f.gpu.video ?? 0);
     // Parts that add up to little of the busy time aren't its cause: the rest is said to be unexplained.
-    if (named < f.gpu.busy / 3 && !f.gpu.shaders) return `GPU busy ${f.gpu.busy} ms, ${f.gpu.busy - named} of it in nothing it names (${parts})${fresh ? `; just before, ${fresh.what} started ${fresh.ms} ms earlier` : ''}`;
+    if (named < f.gpu.busy / 3 && !f.gpu.shaders) {
+      // The GPU's own largest tasks are the lead when raster and composite aren't (ADR 0002 D7).
+      const lead = f.gpu.top?.length ? `; most of it in ${f.gpu.top.slice(0, 2).join(', ')}` : ' in nothing it names';
+      return `GPU busy ${f.gpu.busy} ms, ${f.gpu.busy - named} of it outside raster and composite (${parts})${lead}${fresh ? `; just before, ${fresh.what} started ${fresh.ms} ms earlier` : ''}`;
+    }
     return `GPU busy ${f.gpu.busy} ms: ${parts}`;
   }
   if (f.waitedOnSurface) return `waiting on ${named}`;

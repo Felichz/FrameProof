@@ -12,6 +12,7 @@ thing to do now, with its command. Run it, then `next` again.
 - `frameproof guide verdicts`: what each status means and what you may say
 - `frameproof guide compare`: judging a change, and pricing one before making it
 - `frameproof guide freezes`: reading a freeze's dossier, the journey, and queries
+- `frameproof guide bisect`: when a dossier can't name a cause, which part of the page (or which commit) holds the frames
 - `frameproof guide budgets`: counted work, the ledger, and `check` in CI
 - `frameproof guide goals`: GOALS.md and JOURNAL.md, the person's part
 - `frameproof guide machine`: doctor, calibration, busy machines, where it can't run

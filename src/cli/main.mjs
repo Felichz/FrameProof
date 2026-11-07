@@ -19,6 +19,7 @@ const COMMANDS = {
   compare: () => import('../commands/compare.mjs'),
   price: () => import('../commands/price.mjs'),
   freezes: () => import('../commands/freezes.mjs'),
+  bisect: () => import('../commands/bisect.mjs'),
   show: () => import('../commands/show.mjs'),
   query: () => import('../commands/query.mjs'),
   ledger: () => import('../commands/ledger.mjs'),
@@ -30,9 +31,9 @@ const COMMANDS = {
 };
 /** How many positional arguments each command takes: one more is a mistake, said as one (an argument that
     passed quietly sent an agent the wrong way for hours: `show <run> f4` printed the run, not f4). */
-const ARITY = { next: 0, guide: 1, doctor: 0, init: 0, scenario: 2, calibrate: 0, compare: 0, price: 0, freezes: 0, show: 3, query: 2, ledger: 0, check: 0, affected: 0, journal: 0, report: 1, wait: 1 };
+const ARITY = { next: 0, guide: 1, doctor: 0, init: 0, scenario: 2, calibrate: 0, compare: 0, price: 0, freezes: 0, bisect: Infinity, show: 3, query: 2, ledger: 0, check: 0, affected: 0, journal: 0, report: 1, wait: 1 };
 /** The guide topic that documents each command, for `<command> --help`. */
-const TOPIC = { next: 'index', guide: 'index', doctor: 'machine', init: 'config', scenario: 'scenarios', calibrate: 'machine', compare: 'compare', price: 'compare', freezes: 'freezes', show: 'freezes', query: 'freezes', ledger: 'budgets', check: 'budgets', affected: 'compare', journal: 'goals', report: 'verdicts', wait: 'index' };
+const TOPIC = { next: 'index', guide: 'index', doctor: 'machine', init: 'config', scenario: 'scenarios', calibrate: 'machine', compare: 'compare', price: 'compare', freezes: 'freezes', bisect: 'bisect', show: 'freezes', query: 'freezes', ledger: 'budgets', check: 'budgets', affected: 'compare', journal: 'goals', report: 'verdicts', wait: 'index' };
 
 /** Which frameproof answered: the package's version, and its commit when it runs from a clone. */
 let toolId;
@@ -54,7 +55,7 @@ export function tool() {
 }
 
 /** The commands that measure, and so may run for minutes: they take --background. */
-const LONG = new Set(['calibrate', 'compare', 'price', 'freezes', 'ledger', 'check', 'scenario']);
+const LONG = new Set(['calibrate', 'compare', 'price', 'freezes', 'bisect', 'ledger', 'check', 'scenario']);
 
 export const HELP = `frameproof: frame-level performance evidence for web apps, for coding agents.
 
@@ -69,6 +70,7 @@ Start with: frameproof next   (it says the one thing to do now, with its command
   compare --base --head     alternated A/B, with a verdict
   price --inject <css|js>   what a change would be worth, before making it
   freezes -s <scenario>     freezes grouped by cause
+  bisect -s <s> <cand>...   which part of the page (or which commit) holds the frames
   show <id> [section]       one freeze's dossier, or one run
   query <run> <what>        hot, forced, askers, threads, long-tasks, failures
   ledger -s <scenario>      counted work per step

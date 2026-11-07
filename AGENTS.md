@@ -23,7 +23,7 @@ For the details of any command, ask the tool, not this page: `npx -y github:Feli
 1. **Know what matters.** `perf/GOALS.md` says which interactions matter to this project's people and what they accept giving up. If it's empty, ask the person; it's the one thing the tool can't work out.
 2. **Read the journal.** `perf/JOURNAL.md` lists what was already tried. Don't repeat a dead end without a new reason.
 3. **Find the cost.** `freezes` and `query` name it, down to the source line. Don't open trace files or write parsers: if a question has no command, say so.
-4. **Price it, when you can.** `price` injects a change to see what it's worth before you make it.
+4. **Price it, when you can.** `price` injects a change to see what it's worth before you make it. When the dossier can't name the cause, `bisect` takes parts of the page away until the frames follow one (`frameproof guide bisect`).
 5. **Change one thing.** Leave it uncommitted: `compare` judges the files as they are against the last commit.
 6. **Judge it with `compare`.** Pass `--note` with your hypothesis, so it lands in the journal.
 7. **Report with `report`**, which writes the result for a person.

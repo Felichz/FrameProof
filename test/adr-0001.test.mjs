@@ -58,7 +58,9 @@ test("the page's own root surface and Chrome's marks aren't a frame that started
 
 test('a GPU verdict whose parts explain little says so', () => {
   const f = freeze({ gpu: { busy: 100, raster: 2, composite: 1, shaders: 0 } });
-  assert.match(verdict(f), /^GPU busy 100 ms, 97 of it in nothing it names/);
+  assert.match(verdict(f), /^GPU busy 100 ms, 97 of it outside raster and composite \(raster 2 ms, composite 1 ms\) in nothing it names/);
+  const named = freeze({ gpu: { busy: 100, raster: 2, composite: 1, shaders: 0, top: ['VideoFrameUpload 60 ms', 'Swap 20 ms'] } });
+  assert.match(verdict(named), /most of it in VideoFrameUpload 60 ms, Swap 20 ms/);
   const g = freeze({ gpu: { busy: 100, raster: 60, composite: 20, shaders: 0 } });
   assert.match(verdict(g), /^GPU busy 100 ms: raster 60 ms/);
 });
@@ -72,4 +74,14 @@ test('a base that reads unlike the last run of the same build says so', () => {
   assert.deepEqual(baseDrift(ctx, { run: { id: 'r1' }, build, results: cell(31.5) }), {});
   assert.match(baseDrift(ctx, { run: { id: 'r2' }, build, results: cell(22) })['carousel/next@4x'], /read 22 here and 31.5 in r1/);
   assert.deepEqual(baseDrift(ctx, { run: { id: 'r3' }, build, results: cell(23) }), {});
+});
+
+test("a dossier names the GPU's own time by task, leaving the wrappers out (ADR 0002 D7)", async () => {
+  const { dossier } = await import('../src/core/freezes.mjs');
+  const gpu = '20:21';
+  const ev = (name, ts, dur) => ({ name, ts, dur, pid: 20, tid: 21, ph: 'X' });
+  const events = [ev('RunTask', 1000, 50_000), ev('VideoFrameUpload', 2000, 30_000), ev('Swap', 35_000, 10_000)];
+  const t = { events: [], byThread: new Map([[gpu, events]]), gpuMain: gpu, pageMain: '10:11', pagePid: 10, threadName: new Map(), processName: new Map(), docs: new Map(), ours: new Set([10]), docName: () => 'page' };
+  const d = dossier(t, [], { t0: 0, vsyncMs: 16.7, placeTrace: () => ({ where: '' }), profiles: [], window: [0, 60_000] });
+  assert.deepEqual(d.gpu.top, ['VideoFrameUpload 30 ms', 'Swap 10 ms']);
 });
