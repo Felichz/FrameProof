@@ -79,7 +79,7 @@ frameproof reads the frames Chrome's compositor reports, in a real window kept o
 ## Where it comes from
 
 <details>
-<summary>The tooling that made <a href="https://portfolio-felix-teal.vercel.app/">my portfolio</a> fluid, where an agent ran the measuring and I decided the trade-offs.</summary>
+<summary>The tooling that made <a href="https://felix.medanolabs.com/">my portfolio</a> fluid, where an agent ran the measuring and I decided the trade-offs.</summary>
 
 <br>
 
